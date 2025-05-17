@@ -1,5 +1,9 @@
 #include <string>
 
+#ifdef __GNUC__
+	#include <cstdint>
+#endif
+
 namespace Overworld {
   /**
    * Identities should not be shared beyond a single server

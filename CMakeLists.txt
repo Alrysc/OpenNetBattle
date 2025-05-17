@@ -5,6 +5,11 @@ set(CMAKE_CXX_STANDARD          17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS        OFF)
 
+# Consider adding directive to detect for GNU/Linux specifically for these modifications
+# IF(GNU)
+set(CMAKE_CXX_FLAGS "-fpermissive -Wchanges-meaning")
+# ENDIF()
+
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 include(FindLua)

@@ -39,6 +39,10 @@ THE SOFTWARE.
 #include <unordered_set>
 #include <vector>
 
+#ifdef __GNUC__
+	#include <cstdint>
+#endif
+
 #ifdef __cpp_lib_optional
 #include <optional>
 #define CXXOPTS_HAS_OPTIONAL

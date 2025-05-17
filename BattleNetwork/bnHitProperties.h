@@ -2,6 +2,11 @@
 #include "bnElements.h"
 #include "bnDirection.h"
 
+#ifdef __GNUC__
+	#include <cstdint>
+#endif
+
+
 // forward declare
 using EntityID_t = long;
 
