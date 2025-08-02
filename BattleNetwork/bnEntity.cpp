@@ -229,10 +229,13 @@ void Entity::UpdateMovement(double elapsed)
               copyMoveEvent = {};
             }
           }
-          else if (tile->GetState() == TileState::sea) {
+          else if (tile->GetState() == TileState::sea && GetElement() != Element::aqua && !HasFloatShoe()) {
             Root(frames(20));
             auto splash = std::make_shared<WaterSplash>();
             field.lock()->AddEntity(splash, *tile);
+          }
+          else if (tile->GetState() == TileState::sand && !HasFloatShoe()) {
+            Root(frames(20));
           }
           else {
             // Invalidate the next tile pointer

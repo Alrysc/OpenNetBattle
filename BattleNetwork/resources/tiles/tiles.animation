@@ -207,10 +207,9 @@ frame duration="16f" x="120" y="180" w="40" h="30" originx="0" originy="0" flipx
 frame duration="16f" x="240" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
 frame duration="16f" x="360" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
 frame duration="60f" x="480" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="25f" x="480" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="20f" x="360" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="16f" x="240" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="16f" x="120" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0"  
+frame duration="25f" x="360" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+frame duration="20f" x="240" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+frame duration="16f" x="120" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0"
 
 animation state="row_2_sea"
 frame duration="80f" x="40" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
@@ -218,9 +217,8 @@ frame duration="16f" x="160" y="180" w="40" h="30" originx="0" originy="0" flipx
 frame duration="16f" x="280" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
 frame duration="16f" x="400" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
 frame duration="60f" x="520" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="25f" x="520" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="20f" x="400" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="16f" x="280" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+frame duration="25f" x="400" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+frame duration="20f" x="280" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
 frame duration="16f" x="160" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
 
 animation state="row_3_sea"
@@ -229,7 +227,24 @@ frame duration="16f" x="200" y="180" w="40" h="30" originx="0" originy="0" flipx
 frame duration="16f" x="320" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
 frame duration="16f" x="440" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
 frame duration="60f" x="560" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="25f" x="560" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="20f" x="440" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
-frame duration="16f" x="320" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+frame duration="25f" x="440" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+frame duration="20f" x="320" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
 frame duration="16f" x="200" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+
+animation state="row_1_sand"
+frame duration="25" x="600" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+
+animation state="row_2_sand"
+frame duration="25" x="640" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+
+animation state="row_3_sand"
+frame duration="25" x="680" y="180" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+
+animation state="row_1_metal"
+frame duration="25" x="0" y="210" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+
+animation state="row_2_metal"
+frame duration="25" x="40" y="210" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 
+
+animation state="row_3_metal"
+frame duration="25" x="80" y="210" w="40" h="30" originx="0" originy="0" flipx="0" flipy="0" 

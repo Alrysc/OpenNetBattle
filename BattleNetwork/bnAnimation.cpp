@@ -151,7 +151,7 @@ static frame_time_t GetFrameValue(std::string_view line, std::string_view key) {
   if (valueView.empty()) return frames(0);
 
   // frame value
-  if (valueView.at(valueView.size() - 1) == 'f') {    
+  if (valueView.at(valueView.size() - 1) == 'f') {
     valueView = valueView.substr(0, valueView.size() - 1);
     return frames(std::atoi(valueView.data()));
   }
@@ -240,10 +240,7 @@ void Animation::LoadWithData(const string& data)
         continue;
       }
 
-      float duration = GetFloatValue(line, "duration");
-
-      // prevent negative frame numbers
-      frame_time_t currentFrameDuration = from_seconds(std::fabs(duration));
+      frame_time_t currentFrameDuration = GetFrameValue(line, "duration");
 
       int currentStartx = 0;
       int currentStarty = 0;
