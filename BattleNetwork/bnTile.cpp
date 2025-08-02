@@ -26,11 +26,13 @@
 #define COOLDOWN frames(1800)
 #define FLICKER frames(180)
 #define SEA_COOLDOWN frames (60*16)
+#define SEA_DAMAGE_COOLDOWN frames(7)
 
 namespace Battle {
   frame_time_t Tile::brokenCooldownLength = COOLDOWN;
   frame_time_t Tile::teamCooldownLength = COOLDOWN;
   frame_time_t Tile::seaCooldownLength = SEA_COOLDOWN;
+  frame_time_t Tile::seaDamageCooldownLength = SEA_DAMAGE_COOLDOWN;
   frame_time_t Tile::flickerTeamCooldownLength = FLICKER;
 
   Tile::Tile(int _x, int _y) : 
@@ -319,6 +321,7 @@ namespace Battle {
 
     if (_state == TileState::sea) {
       seaCooldown = seaCooldownLength;
+      seaDamageCooldown = seaDamageCooldownLength;
     }
 
     state = _state;
@@ -533,6 +536,9 @@ namespace Battle {
       // VOLCANO 
       volcanoEruptTimer -= from_seconds(_elapsed);
 
+      // Sea
+      seaDamageCooldown -= from_seconds(_elapsed);
+
       if (volcanoEruptTimer <= frames(0)) {
         volcanoErupt.Update(_elapsed, volcanoSprite->getSprite());
       }
@@ -719,6 +725,14 @@ namespace Battle {
             character.Hit(props);
             field.AddEntity(std::make_shared<Explosion>(), GetX(), GetY());
             SetState(TileState::normal);
+          }
+        }
+
+        if (GetState() == TileState::sea && character.GetElement() == Element::fire) {
+          if (seaDamageCooldown <= frames(0)) {
+            if (character.Hit(Hit::Properties({ 1, Hit::pierce, Element::none, 0, Direction::none }))) {
+              seaDamageCooldown = seaDamageCooldownLength;
+            }
           }
         }
       }
