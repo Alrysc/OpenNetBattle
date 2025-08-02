@@ -1130,11 +1130,10 @@ namespace Battle {
     // empty previous frame queue to be used this current frame
     queuedAttackers.clear();
 
-    // TODO: Uncomment when Sand is in.
-//    if (GetState() == TileState::sand && hitByWind) {
-//      SetState(TileState::normal);
-//    }
-//    else
+    if (GetState() == TileState::sand && hitByWind) {
+      SetState(TileState::normal);
+    }
+    else
     if (GetState() == TileState::grass && hitByFire) {
       SetState(TileState::normal);
     }
