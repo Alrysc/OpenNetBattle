@@ -25,10 +25,12 @@
 #define Y_OFFSET 10.0f
 #define COOLDOWN frames(1800)
 #define FLICKER frames(180)
+#define SEA_COOLDOWN frames (60*16)
 
 namespace Battle {
   frame_time_t Tile::brokenCooldownLength = COOLDOWN;
   frame_time_t Tile::teamCooldownLength = COOLDOWN;
+  frame_time_t Tile::seaCooldownLength = SEA_COOLDOWN;
   frame_time_t Tile::flickerTeamCooldownLength = FLICKER;
 
   Tile::Tile(int _x, int _y) : 
@@ -310,6 +312,10 @@ namespace Battle {
       RemoveNode(volcanoSprite);
     }
 
+    if (_state == TileState::sea) {
+      seaCooldown = seaCooldownLength;
+    }
+
     state = _state;
   }
 
@@ -332,6 +338,10 @@ namespace Battle {
     if (state == TileState::broken) {
       // Broken tiles flicker when they regen
       animState = (((brokenCooldown.count() % 4) < 2) && brokenCooldown <= FLICKER) ? std::move(GetAnimState(TileState::normal)) : std::move(GetAnimState(state));
+    }
+    else if (state == TileState::sea) {
+      // Sea tiles flicker when they regen
+      animState = (((seaCooldown.count() % 4) < 2) && seaCooldown <= FLICKER) ? std::move(GetAnimState(TileState::normal)) : std::move(GetAnimState(state));
     }
     else {
       animState = std::move(GetAnimState(state));
@@ -544,6 +554,11 @@ namespace Battle {
       if (flickerTeamCooldown > frames(0)) {
         flickerTeamCooldown -= frames(1);
         if (flickerTeamCooldown < frames(0)) flickerTeamCooldown = frames(0);
+      }
+
+      if (state == TileState::sea) {
+        seaCooldown -= frames(1);
+        if (seaCooldown < frames(0)) { seaCooldown = frames(0); state = TileState::normal; };
       }
 
       if (state == TileState::broken) {
@@ -928,6 +943,9 @@ namespace Battle {
       break;
     case TileState::holy:
       str = str + "holy";
+      break;
+    case TileState::sea:
+      str = str + "sea";
       break;
     default:
       str = str + "normal";

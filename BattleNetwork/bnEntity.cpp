@@ -3,6 +3,7 @@
 #include "bnTile.h"
 #include "bnField.h"
 #include "bnPlayer.h"
+#include "bnWaterSplash.h"
 #include "bnShakingEffect.h"
 #include "bnShaderResourceManager.h"
 #include "bnTextureResourceManager.h"
@@ -227,6 +228,11 @@ void Entity::UpdateMovement(double elapsed)
               RawMoveEvent(event, ActionOrder::immediate);
               copyMoveEvent = {};
             }
+          }
+          else if (tile->GetState() == TileState::sea) {
+            Root(frames(20));
+            auto splash = std::make_shared<WaterSplash>();
+            field.lock()->AddEntity(splash, *tile);
           }
           else {
             // Invalidate the next tile pointer
@@ -1216,10 +1222,9 @@ const bool Entity::Hit(Hit::Properties props) {
     GetTile()->SetState(TileState::normal);
   }
 
-  // TODO: Replace with Sea state check when Sea panels 
-  // are added. Disabling bonus damage for now.
-  if (false && props.element == Element::elec
-    && GetTile()->GetState() == TileState::ice) {
+
+  if (props.element == Element::elec
+    && GetTile()->GetState() == TileState::sea) {
     tileDamage = props.damage;
   }
 
