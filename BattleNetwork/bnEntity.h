@@ -274,6 +274,8 @@ public:
   Battle::Tile* GetCurrentTile() const;
 
   const sf::Vector2f GetTileOffset() const;
+  void SetTileOffset(const sf::Vector2f& offset);
+  void RefreshPosition();
   void SetDrawOffset(const sf::Vector2f& offset);
   void SetDrawOffset(float x, float y);
   const sf::Vector2f GetDrawOffset() const;

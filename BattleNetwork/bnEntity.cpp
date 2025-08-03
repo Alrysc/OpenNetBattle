@@ -804,6 +804,14 @@ const sf::Vector2f Entity::GetTileOffset() const
   return this->tileOffset;
 }
 
+void Entity::SetTileOffset(const sf::Vector2f& offset) {
+  tileOffset = offset;
+}
+
+void Entity::RefreshPosition() {
+  setPosition(tile->getPosition() + tileOffset + drawOffset);
+}
+
 void Entity::SetDrawOffset(const sf::Vector2f& offset)
 {
   drawOffset = offset;
