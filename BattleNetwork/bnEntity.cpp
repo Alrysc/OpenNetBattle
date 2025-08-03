@@ -1566,18 +1566,22 @@ void Entity::ResolveFrameBattleDamage()
       slideFromDrag = true;
       Battle::Tile* dest = GetTile() + postDragEffect.dir;
 
+      // The final drag event applies endlag.
+      // 22 frames matches the amount of fixed frames applied to player recoil
+      // This must be applied as move delta time instead of end delay to avoid 
+      // opening new edge cases. When move delta is 0, IsSliding is false and 
+      // statuses are allowed to apply earlier than intended.
+      // This may be made more clear by making a distinction between voluntary 
+      // and involuntary MoveEvents.
+      frame_time_t movetime = frames(4);
       if (!CanMoveTo(dest)) {
+        movetime= frames(22);
         dest = GetTile();
         postDragEffect.count = 0;
       }
-
-      // The final drag event applies endlag
-      // 22 frames matches the amount of fixed frames applied to player recoil
-      const frame_time_t endlag = 
-        postDragEffect.count == 0 ? frames(22) : frames(0);
      
       // Enqueue a move action at the top of our priorities
-      actionQueue.Add(MoveEvent{ frames(4), frames(0), endlag, 0, dest, {}, true }, ActionOrder::immediate, ActionDiscardOp::until_resolve);
+      actionQueue.Add(MoveEvent{ movetime, frames(0), frames(0), 0, dest, {}, true }, ActionOrder::immediate, ActionDiscardOp::until_resolve);
 
       std::queue<CombatHitProps> oldQueue = statusQueue;
       statusQueue = {};
