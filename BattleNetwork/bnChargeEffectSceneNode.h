@@ -50,6 +50,12 @@ public:
    */
   const bool IsFullyCharged() const;
 
+  /**
+ * @brief Check partial charge time
+ * @return true if the charge component's charge time is above i10
+ */
+  const bool IsPartiallyCharged() const;
+
   void SetFullyChargedColor(const sf::Color color);
 
 private:

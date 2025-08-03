@@ -116,6 +116,8 @@ public:
    */
   void Charge(bool state);
 
+  bool IsCharging();
+
   void SetAttackLevel(unsigned lvl);
   const unsigned GetAttackLevel();
 

@@ -18,6 +18,9 @@ void ScriptedPlayer::Init() {
 
   stx::result_t<sol::object> initResult = CallLuaFunction(script, "player_init", WeakWrapper(weak_from_base<ScriptedPlayer>()));
 
+  // Recalculate charge time, which may have been changed by player_init
+  Charge(false);
+
   if (initResult.is_error()) {
     Logger::Log(LogLevel::critical, initResult.error_cstr());
   }

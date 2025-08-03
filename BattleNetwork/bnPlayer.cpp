@@ -76,7 +76,6 @@ void Player::Init() {
   animationComponent->SetPath(RESOURCE_PATH);
   animationComponent->Reload();
 
-  Charge(false);
   FinishConstructor();
 }
 
@@ -225,6 +224,7 @@ int Player::GetMoveCount() const
 
 void Player::Charge(bool state)
 {
+  
   frame_time_t maxCharge = CalculateChargeTime(GetChargeLevel());
   if (activeForm) {
     maxCharge = activeForm->CalculateChargeTime(GetChargeLevel());
@@ -232,6 +232,10 @@ void Player::Charge(bool state)
 
   chargeEffect->SetMaxChargeTime(maxCharge);
   chargeEffect->SetCharging(state);
+}
+
+bool Player::IsCharging() {
+  return chargeEffect->IsPartiallyCharged();
 }
 
 void Player::SetAttackLevel(unsigned lvl)

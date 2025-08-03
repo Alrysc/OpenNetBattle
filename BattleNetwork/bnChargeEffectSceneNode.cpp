@@ -85,6 +85,11 @@ const bool ChargeEffectSceneNode::IsFullyCharged() const
   return isCharged;
 }
 
+const bool ChargeEffectSceneNode::IsPartiallyCharged() const 
+{
+  return isPartiallyCharged;
+}
+
 void ChargeEffectSceneNode::SetFullyChargedColor(const sf::Color color)
 {
   chargeColor = color;
