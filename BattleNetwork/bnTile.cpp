@@ -25,10 +25,14 @@
 #define Y_OFFSET 10.0f
 #define COOLDOWN frames(1800)
 #define FLICKER frames(180)
+#define SEA_COOLDOWN frames (60*16)
+#define SEA_DAMAGE_COOLDOWN frames(7)
 
 namespace Battle {
   frame_time_t Tile::brokenCooldownLength = COOLDOWN;
   frame_time_t Tile::teamCooldownLength = COOLDOWN;
+  frame_time_t Tile::seaCooldownLength = SEA_COOLDOWN;
+  frame_time_t Tile::seaDamageCooldownLength = SEA_DAMAGE_COOLDOWN;
   frame_time_t Tile::flickerTeamCooldownLength = FLICKER;
 
   Tile::Tile(int _x, int _y) : 
@@ -292,14 +296,19 @@ namespace Battle {
     }
 
     if (_state == TileState::broken) {
-      if(characters.size() || reserved.size()) {
+      bool noBreak = characters.size() || reserved.size();
+      noBreak = noBreak || state == TileState::metal;
+
+      if (noBreak) {
         return;
-      } else {
-        brokenCooldown = brokenCooldownLength;
       }
+      
+      brokenCooldown = brokenCooldownLength;  
     }
 
-    if (_state == TileState::cracked && (state == TileState::empty || state == TileState::broken)) {
+    bool noCrack = (state == TileState::empty) || (state == TileState::broken) || (state == TileState::metal);
+
+    if (_state == TileState::cracked && noCrack) {
       return;
     }
 
@@ -308,6 +317,11 @@ namespace Battle {
     }
     else {
       RemoveNode(volcanoSprite);
+    }
+
+    if (_state == TileState::sea) {
+      seaCooldown = seaCooldownLength;
+      seaDamageCooldown = seaDamageCooldownLength;
     }
 
     state = _state;
@@ -332,6 +346,10 @@ namespace Battle {
     if (state == TileState::broken) {
       // Broken tiles flicker when they regen
       animState = (((brokenCooldown.count() % 4) < 2) && brokenCooldown <= FLICKER) ? std::move(GetAnimState(TileState::normal)) : std::move(GetAnimState(state));
+    }
+    else if (state == TileState::sea) {
+      // Sea tiles flicker when they regen
+      animState = (((seaCooldown.count() % 4) < 2) && seaCooldown <= FLICKER) ? std::move(GetAnimState(TileState::normal)) : std::move(GetAnimState(state));
     }
     else {
       animState = std::move(GetAnimState(state));
@@ -518,6 +536,9 @@ namespace Battle {
       // VOLCANO 
       volcanoEruptTimer -= from_seconds(_elapsed);
 
+      // Sea
+      seaDamageCooldown -= from_seconds(_elapsed);
+
       if (volcanoEruptTimer <= frames(0)) {
         volcanoErupt.Update(_elapsed, volcanoSprite->getSprite());
       }
@@ -544,6 +565,11 @@ namespace Battle {
       if (flickerTeamCooldown > frames(0)) {
         flickerTeamCooldown -= frames(1);
         if (flickerTeamCooldown < frames(0)) flickerTeamCooldown = frames(0);
+      }
+
+      if (state == TileState::sea) {
+        seaCooldown -= frames(1);
+        if (seaCooldown < frames(0)) { seaCooldown = frames(0); state = TileState::normal; };
       }
 
       if (state == TileState::broken) {
@@ -699,6 +725,14 @@ namespace Battle {
             character.Hit(props);
             field.AddEntity(std::make_shared<Explosion>(), GetX(), GetY());
             SetState(TileState::normal);
+          }
+        }
+
+        if (GetState() == TileState::sea && character.GetElement() == Element::fire) {
+          if (seaDamageCooldown <= frames(0)) {
+            if (character.Hit(Hit::Properties({ 1, Hit::pierce, Element::none, 0, Direction::none }))) {
+              seaDamageCooldown = seaDamageCooldownLength;
+            }
           }
         }
       }
@@ -929,6 +963,15 @@ namespace Battle {
     case TileState::holy:
       str = str + "holy";
       break;
+    case TileState::sea:
+      str = str + "sea";
+      break;
+    case TileState::sand:
+      str = str + "sand";
+      break;
+    case TileState::metal:
+      str = str + "metal";
+      break;
     default:
       str = str + "normal";
     }
@@ -1101,11 +1144,10 @@ namespace Battle {
     // empty previous frame queue to be used this current frame
     queuedAttackers.clear();
 
-    // TODO: Uncomment when Sand is in.
-//    if (GetState() == TileState::sand && hitByWind) {
-//      SetState(TileState::normal);
-//    }
-//    else
+    if (GetState() == TileState::sand && hitByWind) {
+      SetState(TileState::normal);
+    }
+    else
     if (GetState() == TileState::grass && hitByFire) {
       SetState(TileState::normal);
     }

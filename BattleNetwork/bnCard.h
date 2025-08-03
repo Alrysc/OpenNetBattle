@@ -4,6 +4,8 @@
 #include <tuple>
 #include <vector>
 #include "bnElements.h"
+#include "bnPackageAddress.h"
+#include <map>
 
 using std::string;
 
@@ -29,6 +31,7 @@ namespace Battle {
 
   class Card {
   public:
+    using usize = size_t;
     struct Properties {
       std::string uuid;
       unsigned damage{ 0 };
@@ -169,13 +172,16 @@ namespace Battle {
       return std::tie(props.shortname, props.code) < std::tie(rhs.props.shortname, rhs.props.code);
     }
 
-    void ModDamage(int modifier);
+    void ModDamage(int32_t modifier, usize id_hash);
+    void ClearMod(usize id_hash);
+    const bool HasMod(usize id_hash);
     void MultiplyDamage(unsigned int multiplier);
     const unsigned GetMultiplier() const;
 
     friend struct Compare;
 
   private:
+    std::map<usize, int32_t> prevModifiers;
     Properties unmodded{};
     Properties props{};
     unsigned int multiplier{ 1 };

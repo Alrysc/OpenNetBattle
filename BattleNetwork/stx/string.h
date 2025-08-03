@@ -54,4 +54,8 @@ namespace stx {
   * @param stride determines the number of pairs per space. Default is 1 e.g. `00 AA BB`. If set to 0 there is no spacing.
   */
   std::string as_hex(const std::string& buffer, size_t stride=1);
+
+  uint32_t hash(const std::string& str);
+
+  uint32_t hashword(const uint32_t* k, size_t length, uint32_t initval);
 }

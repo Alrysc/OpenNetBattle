@@ -109,6 +109,23 @@ void SelectedCardsUI::OnUpdate(double _elapsed) {
     if (character->IsDeleted()) {
       Hide();
     }
+
+    Battle::Tile* tile = character->GetTile();
+    if (tile == nullptr) return;
+   
+    MaybeCard& maybeCard = Peek();
+    if (!maybeCard.has_value()) return;
+
+    Battle::Card& data = maybeCard.value().get();
+    
+    // TODO: Check secondary element when they are aded
+    if (tile->GetState() == TileState::sea && data.GetElement() == Element::aqua && data.CanBoost()) {
+      data.ModDamage(30, InternalPackages::hashes::sea_tile_boost);
+    }
+    else {
+      data.ClearMod(InternalPackages::hashes::sea_tile_boost);
+    }
+
   }
 }
 
@@ -140,6 +157,19 @@ bool SelectedCardsUI::UseNextCard() {
 
   Battle::Card& card = (*selectedCards)[curr];
 
+  Battle::Tile* tile = owner->GetTile();
+
+  // Reset tile when card is boosted by Sea.
+  // It could be worth checking this under the CanBoost() check below, 
+  // but for now, hfacing the modded damage should mean the modded damage 
+  // will happen, even if the card has somehow become marked as unboostable
+  // by now.
+  if (tile != nullptr) {
+    if (tile->GetState() == TileState::sea && card.HasMod(InternalPackages::hashes::sea_tile_boost)) {
+      tile->SetState(TileState::normal);
+    }
+  }
+
   if (card.CanBoost()) {
     card.MultiplyDamage(multiplierValue);
     multiplierValue = 1; // multiplier is reset because it has been consumed 
@@ -156,11 +186,10 @@ void SelectedCardsUI::Broadcast(std::shared_ptr<CardAction> action)
   CardActionUsePublisher::Broadcast(action, CurrentTime::AsMilli());
 }
 
-std::optional<std::reference_wrapper<const Battle::Card>> SelectedCardsUI::Peek()
+SelectedCardsUI::MaybeCard SelectedCardsUI::Peek()
 {
   if (curr < selectedCards->size()) {
-    using RefType = std::reference_wrapper<const Battle::Card>;
-    return std::optional<RefType>(std::ref((*selectedCards)[curr]));
+    return MaybeCard(std::ref((*selectedCards)[curr]));
   }
 
   return {};
