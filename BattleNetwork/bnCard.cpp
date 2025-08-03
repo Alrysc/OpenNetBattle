@@ -103,11 +103,35 @@ namespace Battle {
     return iter != props.metaClasses.end();
   }
 
-  void Card::ModDamage(int modifier)
+  void Card::ModDamage(int32_t modifier, usize id_hash) 
   {
+    auto iter = prevModifiers.find(id_hash);
+    if (iter != prevModifiers.end()) {
+      int32_t& value = iter->second;
+      if (modifier != value) {
+        props.damage += modifier - value;
+        value = modifier;
+      }
+      return;
+    }
+
     if (unmodded.damage != 0) {
       props.damage += modifier;
+      prevModifiers.insert(std::make_pair(id_hash, modifier));
     }
+  }
+
+  void Card::ClearMod(usize id_hash) 
+  {
+    auto iter = prevModifiers.find(id_hash);
+    if (iter == prevModifiers.end()) return;
+    props.damage -= iter->second;
+    prevModifiers.erase(iter);
+  }
+
+  const bool Card::HasMod(usize id_hash) 
+  {
+    return prevModifiers.find(id_hash) != prevModifiers.end();
   }
 
   void Card::MultiplyDamage(unsigned int multiplier)

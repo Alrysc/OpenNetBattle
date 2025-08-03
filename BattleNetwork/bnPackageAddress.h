@@ -16,6 +16,14 @@ struct PackageAddress {
   static stx::result_t<PackageAddress> FromStr(const std::string& fqn);
 };
 
+namespace InternalPackages {
+  static const PackageAddress sea_tile_boost = PackageAddress::FromStr("@internal/com.onb.sea_tile_boost").unwrap();
+
+  namespace hashes {
+    static const int32_t sea_tile_boost = stx::hash(InternalPackages::sea_tile_boost);
+  }
+}
+
 bool operator<(const PackageAddress& a, const PackageAddress& b);
 bool operator==(const PackageAddress& a, const PackageAddress& b);
 
