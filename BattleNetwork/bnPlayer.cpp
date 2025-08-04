@@ -268,8 +268,29 @@ const unsigned Player::GetChargeLevel()
 void Player::ModMaxHealth(int mod)
 {
   stats.moddedHP += mod;
-  SetMaxHealth(this->GetMaxHealth() + mod);
-  SetHealth(this->GetMaxHealth());
+
+  /*
+    Used to set current health to new max, but this 
+    is undesired behavior when PlayerSession has a 
+    different current health.
+
+    Instead, raise health to new max iff current was 
+    the max health. 
+
+    This will not be necessary once block mutations are 
+    known to the session.
+  */
+  const int oldMax = GetMaxHealth();
+  const int newMax = oldMax + mod;
+  const int curHP = GetHealth();
+  SetMaxHealth(newMax);
+
+  if (newMax < curHP) {
+    SetHealth(newMax);
+  }
+  else if (oldMax == curHP) {
+    SetHealth(newMax);
+  }
 }
 
 const int Player::GetMaxHealthMod()

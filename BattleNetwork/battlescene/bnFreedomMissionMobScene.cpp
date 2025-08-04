@@ -129,6 +129,16 @@ void FreedomMissionMobScene::Init()
     playerCanFlip = mob.PlayerCanFlip();
   }
 
+  /*
+    SpawnLocalPlayer calls Lua player_init, which may set health as
+    a means to set max health. The localPlayer already has this health
+    value, or it may have a modified value from the server. To avoid 
+    overwriting modified values from the server, undo any Lua SetHealth 
+    calls by setting back to the previous health.
+  */ 
+  const int health = GetLocalPlayer()->GetHealth();
+  const int maxHealth = GetLocalPlayer()->GetMaxHealth();
+
   if (mob.HasPlayerSpawnPoint(1)) {
     Mob::PlayerSpawnData data = mob.GetPlayerSpawnPoint(1);
     SpawnLocalPlayer(data.tileX, data.tileY);
@@ -138,14 +148,25 @@ void FreedomMissionMobScene::Init()
     LoadBlueTeamMob(mob);
   }
 
-  // Run block programs on the remote player now that they are spawned
+  // If maxHealth is low, assume the session had not set a health value and 
+  // trust the player_init to avoid leaving the player at 0 HP.
+  if (maxHealth > 0) {
+    GetLocalPlayer()->SetHealth(health);
+  }
+  
+
+  // Run block programs on the local player now that they are spawned
   BlockPackageManager& blockPackages = getController().BlockPackagePartitioner().GetPartition(Game::LocalPartition);
   for (const std::string& blockID : props.blocks) {
     if (!blockPackages.HasPackage(blockID)) continue;
-
+    
     auto& blockMeta = blockPackages.FindPackageByID(blockID);
     blockMeta.mutator(*GetLocalPlayer());
   }
+
+
+  //This should be run to ensure Health UI snaps to the user's current health.
+  GetHealthWindow().ResetHP(GetLocalPlayer()->GetHealth());
 
   CardSelectionCust& cardSelectWidget = GetCardSelectWidget();
   cardSelectWidget.PreventRetreat();

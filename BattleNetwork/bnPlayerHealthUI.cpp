@@ -107,6 +107,11 @@ void PlayerHealthUI::draw(sf::RenderTarget& target, sf::RenderStates states) con
   target.draw(glyphs, states);
 }
 
+void PlayerHealthUI::ResetHP(int newHP) {
+  targetHP = std::max(newHP, 0);
+  currHP = lastHP = newHP;
+}
+
 ////////////////////////////////////
 // class PlayerHealthUIComponent  //
 ////////////////////////////////////
@@ -115,10 +120,18 @@ PlayerHealthUIComponent::PlayerHealthUIComponent(std::weak_ptr<Player> _player) 
   UIComponent(_player)
 {
   isBattleOver = false;
-  startHP = _player.lock()->GetHealth();
-  ui.SetHP(startHP);
+  auto player = _player.lock();
+  // startHP is compared to to decide on using the gold gradient.
+  // That color should be used when current <= 25% of max health.
+  startHP = player->GetMaxHealth();
+  ui.SetHP(player->GetHealth());
   SetDrawOnUIPass(false);
   OnUpdate(0); // refresh and prepare for the 1st frame
+}
+
+void PlayerHealthUIComponent::ResetHP(int newHP) {
+  ui.ResetHP(newHP);
+  startHP = GetOwner()->GetMaxHealth();
 }
 
 PlayerHealthUIComponent::~PlayerHealthUIComponent() {

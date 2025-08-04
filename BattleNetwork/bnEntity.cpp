@@ -1632,12 +1632,6 @@ void Entity::ResolveFrameBattleDamage()
 }
 
 void Entity::SetHealth(const int _health) {
-  std::shared_ptr<Field> fieldPtr = field.lock();
-
-  if (fieldPtr) {
-    if (!fieldPtr->isBattleActive) return;
-  }
-
   health = _health;
 
   if (maxHealth == 0) {
