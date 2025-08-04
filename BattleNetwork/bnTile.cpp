@@ -62,7 +62,7 @@ namespace Battle {
     flickerTeamCooldown = teamCooldown = frames(0);
     red_team_atlas = blue_team_atlas = nullptr; // Set by field
 
-    burncycle = frames(1); // milliseconds
+    burncycle = frames(7); // milliseconds
     elapsedBurnTime = burncycle;
 
     highlightMode = TileHighlight::none;
@@ -588,7 +588,7 @@ namespace Battle {
       willHighlight = true;
       break;
     case TileHighlight::flash:
-      willHighlight = (totalElapsed.count() % 4 < 2);
+      willHighlight = (totalElapsed.count() % 8 < 4);
       break;
     default:
       willHighlight = false;
