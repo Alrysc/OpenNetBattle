@@ -150,7 +150,7 @@ bool Character::CanMoveTo(Battle::Tile * next)
 
 const bool Character::CanAttack() const
 {
-  return !currCardAction && IsActionable();
+  return !currCardAction;//&& IsActionable();
 }
 
 void Character::MakeActionable()

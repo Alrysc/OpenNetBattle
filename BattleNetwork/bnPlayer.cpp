@@ -145,6 +145,11 @@ bool Player::IsActionable() const
   return animationComponent->GetAnimationString() == "PLAYER_IDLE";
 }
 
+const bool Player::CanAttack() const
+{
+  return animationComponent->GetAnimationString() != recoilAnimHash && Character::CanAttack();
+}
+
 void Player::Attack() {
   std::shared_ptr<CardAction> action = nullptr;
 

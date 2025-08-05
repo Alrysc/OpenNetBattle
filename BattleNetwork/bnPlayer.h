@@ -87,6 +87,7 @@ public:
 
   void MakeActionable() override final;
   bool IsActionable() const override final;
+  const bool CanAttack() const;
 
   /**
    * @brief Fires a buster
