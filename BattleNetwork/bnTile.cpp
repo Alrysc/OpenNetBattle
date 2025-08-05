@@ -24,16 +24,18 @@
 #define START_Y 144.f
 #define Y_OFFSET 10.0f
 #define COOLDOWN frames(1800)
-#define FLICKER frames(180)
+#define BROKEN_COOLDOWN frames(600)
+#define TILE_FLICKER frames(60)
+#define TEAM_FLICKER frames(180)
 #define SEA_COOLDOWN frames (60*16)
 #define SEA_DAMAGE_COOLDOWN frames(7)
 
 namespace Battle {
-  frame_time_t Tile::brokenCooldownLength = COOLDOWN;
+  frame_time_t Tile::brokenCooldownLength = BROKEN_COOLDOWN;
   frame_time_t Tile::teamCooldownLength = COOLDOWN;
   frame_time_t Tile::seaCooldownLength = SEA_COOLDOWN;
   frame_time_t Tile::seaDamageCooldownLength = SEA_DAMAGE_COOLDOWN;
-  frame_time_t Tile::flickerTeamCooldownLength = FLICKER;
+  frame_time_t Tile::flickerTeamCooldownLength = TEAM_FLICKER;
 
   Tile::Tile(int _x, int _y) : 
     SpriteProxyNode(),
@@ -345,11 +347,11 @@ namespace Battle {
 
     if (state == TileState::broken) {
       // Broken tiles flicker when they regen
-      animState = (((brokenCooldown.count() % 4) < 2) && brokenCooldown <= FLICKER) ? std::move(GetAnimState(TileState::normal)) : std::move(GetAnimState(state));
+      animState = (((brokenCooldown.count() % 4) < 2) && brokenCooldown <= TILE_FLICKER) ? std::move(GetAnimState(TileState::normal)) : std::move(GetAnimState(state));
     }
     else if (state == TileState::sea) {
       // Sea tiles flicker when they regen
-      animState = (((seaCooldown.count() % 4) < 2) && seaCooldown <= FLICKER) ? std::move(GetAnimState(TileState::normal)) : std::move(GetAnimState(state));
+      animState = (((seaCooldown.count() % 4) < 2) && seaCooldown <= TILE_FLICKER) ? std::move(GetAnimState(TileState::normal)) : std::move(GetAnimState(state));
     }
     else {
       animState = std::move(GetAnimState(state));
