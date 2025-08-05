@@ -189,7 +189,7 @@ frame_time_t ScriptedPlayer::CalculateChargeTime(const unsigned chargeLevel)
 {
   if (charge_time_table_func.valid())
   {
-    stx::result_t<frame_time_t> result = CallLuaCallbackExpectingValue<frame_time_t>(charge_time_table_func, weakWrap);
+    stx::result_t<frame_time_t> result = CallLuaCallbackExpectingValue<frame_time_t>(charge_time_table_func, chargeLevel);
 
     if (!result.is_error()) {
       return result.value();
