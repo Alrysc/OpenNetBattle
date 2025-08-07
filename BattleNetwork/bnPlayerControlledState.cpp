@@ -36,6 +36,16 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
     return;
   }
 
+  /*
+    This state may have been paused while the Player was stunned or 
+    frozen (see Entity::Update). If so, the charge time may have been 
+    reset since the last time this updated. This accounts for that by 
+    resetting the isChargeHeld variable, avoiding scenarios where an 
+    attack could be made because a Player had Shoot held before being 
+    stunned and released once it had ended.
+  */
+  isChargeHeld = isChargeHeld && player.chargeEffect->GetChargeTime() > frames(0);
+
   bool missChargeKey = isChargeHeld && !player.InputState().Has(InputEvents::held_shoot);
 
   // Are we creating an action this frame?
