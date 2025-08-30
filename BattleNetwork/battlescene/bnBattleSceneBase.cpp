@@ -512,7 +512,7 @@ void BattleSceneBase::HandleCounterLoss(Entity& subject, bool playsound)
 {
   std::shared_ptr<PlayerSelectedCardsUI> cardUI = subject.GetFirstComponent<PlayerSelectedCardsUI>();
 
-  // Must not be a Player. No counter to remove.
+  // No multipler to remove
   if (!cardUI) {
     return;
   }
