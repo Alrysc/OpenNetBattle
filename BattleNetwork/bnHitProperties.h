@@ -10,11 +10,11 @@ namespace Hit {
 
   const Flags none       = 0x00000000;
   const Flags retangible = 0x00000001;
-  const Flags freeze     = 0x00000002;
+  const Flags stun       = 0x00000002;
   const Flags pierce     = 0x00000004;
   const Flags flinch     = 0x00000008;
   const Flags shake      = 0x00000010;
-  const Flags stun       = 0x00000020;
+  const Flags freeze     = 0x00000020;
   const Flags flash      = 0x00000040;
   const Flags breaking   = 0x00000080; // NOTE: this is what we refer to as "true breaking"
   const Flags impact     = 0x00000100;
