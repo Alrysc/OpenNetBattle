@@ -10,6 +10,7 @@
 #include "bnAudioResourceManager.h"
 #include "bnRandom.h"
 
+// TODO: Buster props should have an aggressor set.
 Buster::Buster(Team _team, bool _charged, int damage) : isCharged(_charged), Spell(_team) {
   SetPassthrough(true);
   SetLayer(-100);
@@ -32,7 +33,7 @@ Buster::Buster(Team _team, bool _charged, int damage) : isCharged(_charged), Spe
   Audio().Play(AudioType::BUSTER_PEA, AudioPriority::high);
 
   auto props = Hit::DefaultProperties;
-  props.flags = props.flags & ~(Hit::flinch | Hit::flash);
+  props.flags = (props.flags | Hit::no_counter) & ~(Hit::flinch | Hit::flash);
 
   props.damage = damage;
   SetHitboxProperties(props);
