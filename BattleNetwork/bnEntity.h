@@ -37,6 +37,7 @@ using std::string;
 #include "bnDefenseRule.h"
 #include "bnHitProperties.h"
 #include "stx/memory.h"
+#include "bnStatusDirector.h"
 
 namespace Battle {
   class Tile;
@@ -772,11 +773,8 @@ protected:
   frame_time_t moveStartupDelay{};
   std::optional<frame_time_t> moveEndlagDelay;
   frame_time_t grassHealCooldown{ 0 }; /*!< Timer until next healing is allowed */
-  frame_time_t stunCooldown{ 0 }; /*!< Timer until stun is over */
-  frame_time_t rootCooldown{ 0 }; /*!< Timer until root is over */
-  frame_time_t freezeCooldown{ 0 }; /*!< Timer until freeze is over */
-  frame_time_t blindCooldown{ 0 }; /*!< Timer until blind is over */
-  frame_time_t invincibilityCooldown{ 0 }; /*!< Timer until invincibility is over */
+  StatusBehaviorDirector statuses;
+  
   bool counterable{};
   bool neverFlip{};
   bool hit{}; /*!< Was hit this frame */
@@ -799,28 +797,12 @@ protected:
   const int GetMoveCount() const; /*!< Total intended movements made. Used to calculate rank*/
 
   /**
-  * @brief Stun a character for maxCooldown seconds
-  * @param maxCooldown
-  * Used internally by class
-  *
-  */
-  void Stun(frame_time_t maxCooldown);
-
-  /**
   * @brief Stop a character from moving for maxCooldown seconds
   * @param maxCooldown
   * Used internally by class
   *
   */
-  void Root(frame_time_t maxCooldown);
-
-  /**
-  * @brief Stop a character from moving for maxCooldown seconds
-  * @param maxCooldown
-  * Used internally by class
-  *
-  */
-  void IceFreeze(frame_time_t maxCooldown);
+  void IceFreeze();
 
   /**
   * @brief This entity should not see opponents for maxCooldown seconds
@@ -828,7 +810,7 @@ protected:
   * Used internally by class
   *
   */
-  void Blind(frame_time_t maxCooldown);
+  void Blind();
 
   /**
   * @brief Query if an attack successfully countered a Character
@@ -898,12 +880,11 @@ private:
   sf::Vector2f counterSlideOffset{ 0.f, 0.f }; /*!< Used when enemies delete on counter - they slide back */
   std::vector<std::shared_ptr<DefenseRule>> defenses; /*<! All defense rules sorted by the lowest priority level */
   std::string name; /*!< Name of the entity */
+  // Controls shader active timing for statuses. Increments every Update and will overflow.
+  unsigned char statusShaderTimer{ 0 };
 
-  // Statuses are resolved one property at a time
-  // until the entire Flag object is equal to 0x00 None
-  // Then we process the next status
-  // This continues until all statuses are processed
   std::queue<CombatHitProps> statusQueue;
+  Hit::Drag currentDrag{};
 
   sf::Shader* whiteout{ nullptr }; /*!< Flash white when hit */
   sf::Shader* stun{ nullptr };     /*!< Flicker yellow with luminance values when stun */

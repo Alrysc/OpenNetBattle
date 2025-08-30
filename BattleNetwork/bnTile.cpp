@@ -1100,9 +1100,6 @@ namespace Battle {
           taggedAttackers.push_back(attacker->GetID());
         }
 
-        // Retangible flag takes characters out of passthrough status
-        retangible = retangible || ((props.flags & Hit::retangible) == Hit::retangible);
-
         // The attacker passed at least one defense check
         character->DefenseCheck(judge, attacker, DefenseOrder::collisionOnly);
 
@@ -1133,8 +1130,6 @@ namespace Battle {
           // we restore the hitbox properties
           attacker->SetHitboxProperties(props);
         }
-
-        if (retangible) character->SetPassthrough(false);
 
         judge.PrepareForNextAttack();
       } // end each spell loop
