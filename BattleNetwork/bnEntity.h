@@ -881,7 +881,7 @@ private:
   std::vector<std::shared_ptr<DefenseRule>> defenses; /*<! All defense rules sorted by the lowest priority level */
   std::string name; /*!< Name of the entity */
   // Controls shader active timing for statuses. Increments every Update and will overflow.
-  unsigned char statusShaderTimer{ 0 };
+  uint8_t statusShaderTimer{ 0 };
 
   std::queue<CombatHitProps> statusQueue;
   Hit::Drag currentDrag{};

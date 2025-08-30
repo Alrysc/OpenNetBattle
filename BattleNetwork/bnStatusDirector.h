@@ -7,8 +7,8 @@
 #include <map>
 
 struct AppliedStatus {
-    Hit::Flags statusFlag;
-    frame_time_t remainingTime;
+  Hit::Flags statusFlag{};
+  frame_time_t remainingTime{};
 };
 
 class Entity;
@@ -59,8 +59,8 @@ private:
     Entity& owner;
     std::vector<InputEvent> lastFrameStates;
     std::map<Hit::Flags, AppliedStatus> statusMap;
-    Hit::Flags currentStatuses;
-    Hit::Flags queuedStatuses;
+    Hit::Flags currentStatuses{};
+    Hit::Flags queuedStatuses{};
 
     void ProcessFlags(Hit::Flags attack);
 

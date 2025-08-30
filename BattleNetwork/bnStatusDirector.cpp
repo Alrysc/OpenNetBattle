@@ -1,14 +1,12 @@
 #include "bnStatusDirector.h"
 #include "bnEntity.h"
 #include "bnHitProperties.h"
-#include <bitset>
 
 StatusBehaviorDirector::StatusBehaviorDirector(Entity& owner) : owner(owner), queuedStatuses{ 0 }, currentStatuses{ 0 } {
     currentStatuses = {};
 }
 
 void StatusBehaviorDirector::AddStatus(Hit::Flags statusFlag, frame_time_t maxCooldown) {
-    // Since we might use it twice, create it once. No need to repeat code.
     AppliedStatus& statusToCheck = GetStatus(statusFlag);
     statusToCheck.remainingTime = maxCooldown;
     queuedStatuses = queuedStatuses | statusFlag;
