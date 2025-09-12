@@ -617,6 +617,22 @@ public:
   bool IsBlind();
 
   /**
+  * @brief Query if entity has a certain status tracked, whether queued or applied. 
+  * A queued status may not be applied by end of frame, or may be nullified during
+  * status processing.
+  * @param status to query
+  * @return true if entity has status applied OR queued, false otherwise
+  */
+  bool HasStatus(Hit::Flags status);
+
+  /**
+  * @brief Query if entity is afflicted by a certain status
+  * @param status to query
+  * @return true if entity has status applied, false otherwise
+  */
+  bool IsStatusApplied(Hit::Flags status);
+
+  /**
    * @brief Some characters allow others to move on top of them
    * @param enabled true, characters can share space, false otherwise
    */

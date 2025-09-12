@@ -384,8 +384,12 @@ void Entity::Update(double _elapsed) {
   Hit::Flags newStatuses = queuedStatuses & currentStatuses;
 
   // Some statuses clear the action queue.
-  // TODO: Consider if they should also call FinishMove. 
+  // TODO: Neither FinishMove nor clearing the queue ends the animation initiated 
+  // by PlayerControlled state. This might be smoothly handled if the move
+  // animation was actually a CardAction. Otherwise, make sure it's safe to enter
+  // idle right here and do that instead.
   if ((newStatuses & (Hit::freeze | Hit::stun)) != 0) {
+    FinishMove();
     actionQueue.ClearQueue(ActionQueue::CleanupType::allow_interrupts);
   }
 
@@ -517,8 +521,11 @@ void Entity::Update(double _elapsed) {
     setPosition(tile->getPosition().x + offset.x, tile->getPosition().y + offset.y);
   }
 
-  // If drag status is over, reset the flag
-  if (!IsSliding() && slideFromDrag) slideFromDrag = false;
+  // If drag slide is over, reset the flag
+  if (!IsSliding() && slideFromDrag && currentDrag.count == 0) {
+    slideFromDrag = false;
+  }
+
 }
 
 
@@ -1503,9 +1510,6 @@ void Entity::ResolveFrameBattleDamage()
   if (!IsSliding() && currentDrag.dir != Direction::none) {
     // enemies and objects on opposing side of field are granted immunity from drag
     if (Teammate(GetTile()->GetTeam())) {
-      actionQueue.ClearQueue(ActionQueue::CleanupType::allow_interrupts);
-      slideFromDrag = true;
-
       if (currentDrag.count > 0u) {
         currentDrag.count -= 1u;
       }
@@ -1516,26 +1520,20 @@ void Entity::ResolveFrameBattleDamage()
       Battle::Tile* dest = GetTile() + currentDrag.dir;
 
 
-      // The final drag event applies endlag.
-      // 22 frames matches the amount of fixed frames applied to player recoil
-      // This must be applied as move delta time instead of end delay to avoid 
-      // opening new edge cases. When move delta is 0, IsSliding is false and 
-      // statuses are allowed to apply earlier than intended.
-      // This may be made more clear by making a distinction between voluntary 
-      // and involuntary MoveEvents.
-      // TODO: Having higher endlag acts badly with ice slide. Ice slide should 
-      // act the same as if the currentDrag.count did not go down when reaching 
-      // that Tile.
+      // The final drag event should reset currentDrag.
+      // TODO: Ice slide should act the same as if the currentDrag.count did 
+      // not go down when reaching that Tile.
       frame_time_t movetime = frames(4);
       if (currentDrag.dir == Direction::none || !CanMoveTo(dest)) {
-        movetime = frames(22);
-        dest = GetTile();
         currentDrag.count = 0;
         currentDrag.dir = Direction::none;
       }
-     
-      // Enqueue a move action at the top of our priorities
-      actionQueue.Add(MoveEvent{ movetime, frames(0), frames(0), 0, dest, {}, true }, ActionOrder::immediate, ActionDiscardOp::until_resolve);
+      else {
+        actionQueue.ClearQueue(ActionQueue::CleanupType::allow_interrupts);
+        slideFromDrag = true;
+        // Enqueue a move action at the top of our priorities
+        actionQueue.Add(MoveEvent{ movetime, frames(0), frames(0), 0, dest, {}, true }, ActionOrder::immediate, ActionDiscardOp::until_resolve);
+      }      
     }
   }
 
@@ -1661,6 +1659,14 @@ bool Entity::IsIceFrozen() {
 bool Entity::IsBlind()
 {
   return statuses.HasStatus(Hit::blind);
+}
+
+bool Entity::HasStatus(Hit::Flags status) {
+  return statuses.HasStatus(status);
+}
+
+bool Entity::IsStatusApplied(Hit::Flags status) {
+  return statuses.IsApplied(status);
 }
 
 

@@ -87,7 +87,6 @@ public:
 
   void MakeActionable() override final;
   bool IsActionable() const override final;
-  const bool CanAttack() const;
 
   /**
    * @brief Fires a buster
@@ -193,6 +192,7 @@ protected:
   std::function<std::shared_ptr<CardAction>()> specialOverride{};
   std::shared_ptr<DefenseSuperArmor> superArmor{ nullptr };
   SyncNodeContainer syncNodeContainer;
+  const bool CanAttackImpl() const override;
 };
 
 template<typename T>

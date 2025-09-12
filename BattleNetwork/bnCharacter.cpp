@@ -17,6 +17,9 @@
 #include "bnCardAction.h"
 #include "bnCardToActions.h"
 
+// All statuses which should prevent Character from taking actions
+constexpr Hit::Flags blockingStatuses = Hit::stun | Hit::freeze | Hit::bubble | Hit::drag;
+
 Character::Character(Rank _rank) :
   rank(_rank),
   CardActionUsePublisher(),
@@ -124,6 +127,8 @@ void Character::Update(double _elapsed) {
       actionQueue.Pop();
     }
   }
+
+  actionBlocked = !CanAttackImpl();
 }
 
 bool Character::CanMoveTo(Battle::Tile * next)
@@ -150,7 +155,11 @@ bool Character::CanMoveTo(Battle::Tile * next)
 
 const bool Character::CanAttack() const
 {
-  return !currCardAction;//&& IsActionable();
+  return !actionBlocked && CanAttackImpl();//&& IsActionable();
+}
+
+const bool Character::CanAttackImpl() const {
+  return !currCardAction && !(statuses.GetCurrentStatuses() & blockingStatuses);
 }
 
 void Character::MakeActionable()

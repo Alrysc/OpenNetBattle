@@ -138,6 +138,9 @@ void Player::MakeActionable()
     animationComponent->SetAnimation("PLAYER_IDLE");
     animationComponent->SetPlaybackMode(Animator::Mode::Loop);
   }
+
+  // TODO: Ensure this is safe to set false here, and if Character::MakeActionable should do the same
+  actionBlocked = false;
 }
 
 bool Player::IsActionable() const
@@ -145,9 +148,9 @@ bool Player::IsActionable() const
   return animationComponent->GetAnimationString() == "PLAYER_IDLE";
 }
 
-const bool Player::CanAttack() const
+const bool Player::CanAttackImpl() const
 {
-  return animationComponent->GetAnimationString() != recoilAnimHash && Character::CanAttack();
+  return Character::CanAttackImpl() && animationComponent->GetAnimationString() != recoilAnimHash;
 }
 
 void Player::Attack() {

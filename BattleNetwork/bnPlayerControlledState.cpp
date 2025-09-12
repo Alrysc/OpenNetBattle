@@ -27,7 +27,11 @@ void PlayerControlledState::OnEnter(Player& player) {
 void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
   // Actions with animation lockout controls take priority over movement
   bool lockout = player.IsLockoutAnimationComplete();
+  // Player is idle
   bool actionable = player.IsActionable();
+  bool canAttack = player.CanAttack();
+  bool isMoving = player.IsMoving();
+  bool isDragged = player.IsStatusApplied(Hit::drag);
 
   // One of our ongoing animations is preventing us from charging
   if (!lockout) {
@@ -52,7 +56,7 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
   if (player.InputState().Has(InputEvents::pressed_use_chip)) {
     std::shared_ptr<PlayerSelectedCardsUI> cardsUI = player.GetFirstComponent<PlayerSelectedCardsUI>();
    
-    if (cardsUI && player.CanAttack() && cardsUI->UseNextCard()) {
+    if (cardsUI && canAttack && cardsUI->UseNextCard()) {
       player.chargeEffect->SetCharging(false);
       isChargeHeld = false;
     }
@@ -60,7 +64,7 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
   }
   else if (player.InputState().Has(InputEvents::released_special)) {
     const std::vector<std::shared_ptr<CardAction>> actions = player.AsyncActionList();
-    bool canUseSpecial = player.CanAttack();
+    bool canUseSpecial = canAttack;
 
     // Just make sure one of these actions are not from an ability
     for (const std::shared_ptr<CardAction>& action : actions) {
@@ -72,20 +76,38 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
     }
   } // queue attack based on input behavior (buster or charge?)
   else if (player.InputState().Has(InputEvents::released_shoot) || missChargeKey) {
-    // This routine is responsible for determining the outcome of the attack
+    // This routine is responsible for determining the outcome of the attack.
+    // It is not yet determined that the attack will be added to the queue. 
+    // Whether it is or not, charge is reset.
     isChargeHeld = false;
     player.chargeEffect->SetCharging(false);
-    player.Attack();
+    
+
+    // TODO: This condition could be somewhat complicated. 
+    // It might make more sense to add a discard filter to ActionQueue that 
+    // discards anything by movement while CanAttack is false.
+    // It is like this now because you must be able to queue attack while
+    // moving, but movement could be due to Drag, where you cannot queue.
+    // You also cannot queue while you cannot act.
+    if ((isMoving && !isDragged) || canAttack) {
+      player.Attack();
+    }
+      
 
   } else if (player.InputState().Has(InputEvents::held_shoot)) {
-    if (actionable || player.IsMoving()) {
+    /* 
+      During Drag, Player may not be moving, but could also not be idle.
+      This means actionable || IsMoving is false, yet they can charge.
+      To cover for this case, check for Drag.
+    */
+    if (actionable || isMoving || isDragged) {
       isChargeHeld = true;
       player.chargeEffect->SetCharging(true);
     }
   }
 
   // Movement increments are restricted based on anim speed at this time
-  if (player.IsMoving()) return;
+  if (isMoving || !canAttack) return;
 
   Direction direction = Direction::none;
   if (player.InputState().Has(InputEvents::pressed_move_up) || player.InputState().Has(InputEvents::held_move_up)) {
