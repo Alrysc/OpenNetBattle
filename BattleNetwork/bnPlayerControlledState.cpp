@@ -26,12 +26,12 @@ void PlayerControlledState::OnEnter(Player& player) {
 
 void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
   // Actions with animation lockout controls take priority over movement
-  bool lockout = player.IsLockoutAnimationComplete();
+  const bool lockout = player.IsLockoutAnimationComplete();
   // Player is idle
-  bool actionable = player.IsActionable();
-  bool canAttack = player.CanAttack();
-  bool isMoving = player.IsMoving();
-  bool isDragged = player.IsStatusApplied(Hit::drag);
+  const bool actionable = player.IsActionable();
+  const bool canAttack = player.CanAttack();
+  const bool isMoving = player.IsMoving();
+  const bool isDragged = player.IsStatusApplied(Hit::drag);
 
   // One of our ongoing animations is preventing us from charging
   if (!lockout) {
@@ -50,7 +50,7 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
   */
   isChargeHeld = isChargeHeld && player.chargeEffect->GetChargeTime() > frames(0);
 
-  bool missChargeKey = isChargeHeld && !player.InputState().Has(InputEvents::held_shoot);
+  const bool missChargeKey = isChargeHeld && !player.InputState().Has(InputEvents::held_shoot);
 
   // Are we creating an action this frame?
   if (player.InputState().Has(InputEvents::pressed_use_chip)) {
@@ -85,7 +85,7 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
 
     // TODO: This condition could be somewhat complicated. 
     // It might make more sense to add a discard filter to ActionQueue that 
-    // discards anything by movement while CanAttack is false.
+    // discards anything but movement while CanAttack is false.
     // It is like this now because you must be able to queue attack while
     // moving, but movement could be due to Drag, where you cannot queue.
     // You also cannot queue while you cannot act.
