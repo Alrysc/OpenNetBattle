@@ -557,9 +557,9 @@ void ScriptResourceManager::ConfigureEnvironment(ScriptPackage& scriptPackage) {
     "Down", InputEvents::held_move_down,
     "Use", InputEvents::held_use_chip,
     "Special", InputEvents::held_special,
-    "Shoot", InputEvents::pressed_shoot,
-    "Left_Shoulder", InputEvents::pressed_shoulder_left,
-    "Right_Shoulder", InputEvents::pressed_shoulder_right
+    "Shoot", InputEvents::held_shoot,
+    "Left_Shoulder", InputEvents::held_shoulder_left,
+    "Right_Shoulder", InputEvents::held_shoulder_right
   );
 
   input_event_record.new_enum("Released",
@@ -569,9 +569,9 @@ void ScriptResourceManager::ConfigureEnvironment(ScriptPackage& scriptPackage) {
     "Down", InputEvents::released_move_down,
     "Use", InputEvents::released_use_chip,
     "Special", InputEvents::released_special,
-    "Shoot", InputEvents::pressed_shoot,
-    "Left_Shoulder", InputEvents::pressed_shoulder_left,
-    "Right_Shoulder", InputEvents::pressed_shoulder_right
+    "Shoot", InputEvents::released_shoot,
+    "Left_Shoulder", InputEvents::released_shoulder_left,
+    "Right_Shoulder", InputEvents::released_shoulder_right
   );
 
   const auto& character_rank_record = state.new_enum("Rank",
