@@ -128,6 +128,22 @@ void StatusBehaviorDirector::OnUpdate(double elapsed) {
     if (drag.remainingTime > frames(0)) {
       return;
     }
+
+    currentStatuses &= ~Hit::drag;
+
+    /* 
+      Other statuses never tick if Drag was handled during update, even
+      if Drag ended on this tick.
+
+      This is also safe with regards to Character::CanAttack's goal - even 
+      though Drag ended and a queued blocking status has not become active, 
+      CanAttack will return false this frame because of the cached part of 
+      CanAttack. It will also still return false for all relevant parts of 
+      the Entity::Update routine next frame, because a queued blocking status 
+      would become active near start of update, when StatusBehaviorDirector::OnUpdate 
+      next runs.
+    */
+    return;
   }
 
   auto keyTestThunk = [this](const InputEvent& key) {
@@ -200,7 +216,6 @@ const bool StatusBehaviorDirector::IsApplied(Hit::Flags flag) const {
 const bool StatusBehaviorDirector::HasStatus(Hit::Flags flag) const {
   return ((currentStatuses | queuedStatuses) & flag) == flag;
 }
-
 
 const Hit::Flags StatusBehaviorDirector::GetCurrentStatuses() const {
   return currentStatuses;
