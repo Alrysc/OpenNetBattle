@@ -95,7 +95,7 @@ void Character::Update(double _elapsed) {
   if (currCardAction) {
 
     // if we have yet to invoke this attack...
-    if (currCardAction->CanExecute() && IsActionable()) {
+    if (currCardAction->CanExecute() && IsIdle()) {
 
       // reduce the artificial delay
       cardActionStartDelay -= from_seconds(_elapsed);
@@ -105,7 +105,7 @@ void Character::Update(double _elapsed) {
         for(std::shared_ptr<AnimationComponent>& anim : this->GetComponents<AnimationComponent>()) {
           anim->CancelCallbacks();
         }
-        MakeActionable();
+        MakeIdle();
         std::shared_ptr<Character> characterPtr = shared_from_base<Character>();
         currCardAction->Execute(characterPtr);
       }
@@ -155,19 +155,19 @@ bool Character::CanMoveTo(Battle::Tile * next)
 
 const bool Character::CanAttack() const
 {
-  return !actionBlocked && CanAttackImpl();//&& IsActionable();
+  return !actionBlocked && CanAttackImpl();
 }
 
 const bool Character::CanAttackImpl() const {
   return !currCardAction && !(statuses.GetCurrentStatuses() & blockingStatuses);
 }
 
-void Character::MakeActionable()
+void Character::MakeIdle()
 {
   // impl. defined
 }
 
-bool Character::IsActionable() const
+bool Character::IsIdle() const
 {
   return true; // impl. defined
 }
@@ -194,6 +194,7 @@ void Character::AddAction(const PeekCardEvent& event, const ActionOrder& order)
 
 void Character::HandleCardEvent(const CardEvent& event, const ActionQueue::ExecutionType& exec)
 {
+
   if (currCardAction == nullptr) {
     if (event.action->GetMetaData().GetProps().timeFreeze) {
       CardActionUsePublisher::Broadcast(event.action, CurrentTime::AsMilli());
@@ -221,8 +222,8 @@ void Character::HandlePeekEvent(const PeekCardEvent& event, const ActionQueue::E
 
     // If we have a card via Peeking, then Play it
     if (publisher->HandlePlayEvent(characterPtr)) {
-      // prepare for this frame's action animation (we must be actionable)
-      MakeActionable();
+      // prepare for this frame's action animation (we must be idle)
+      MakeIdle();
     }
   }
 
