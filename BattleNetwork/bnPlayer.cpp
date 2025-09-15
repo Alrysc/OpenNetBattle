@@ -43,8 +43,8 @@ Player::Player() :
     ClearActionQueue();
     Charge(false);
 
-    // At the end of flinch we need to be made actionable if possible
-    SetAnimation(recoilAnimHash, [this] { MakeActionable();});
+    // At the end of flinch we need to be made idle if possible
+    SetAnimation(recoilAnimHash, [this] { MakeIdle();});
     Audio().Play(AudioType::HURT, AudioPriority::lowest);
   };
 
@@ -57,9 +57,9 @@ Player::Player() :
 
   // When we have no upcoming actions we should be in IDLE state
   actionQueue.SetIdleCallback([this] {
-    if (!IsActionable()) {
+    if (!IsIdle()) {
       auto finish = [this] {
-        MakeActionable();
+        MakeIdle();
       };
 
       animationComponent->OnFinish(finish);
@@ -130,20 +130,17 @@ void Player::OnUpdate(double _elapsed) {
   fullyCharged = chargeEffect->IsFullyCharged();
 }
 
-void Player::MakeActionable()
+void Player::MakeIdle()
 {
   animationComponent->CancelCallbacks();
 
-  if (!IsActionable()) {
+  if (!IsIdle()) {
     animationComponent->SetAnimation("PLAYER_IDLE");
     animationComponent->SetPlaybackMode(Animator::Mode::Loop);
   }
-
-  // TODO: Ensure this is safe to set false here, and if Character::MakeActionable should do the same
-  actionBlocked = false;
 }
 
-bool Player::IsActionable() const
+bool Player::IsIdle() const
 {
   return animationComponent->GetAnimationString() == "PLAYER_IDLE";
 }

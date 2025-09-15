@@ -21,14 +21,13 @@ PlayerControlledState::~PlayerControlledState()
 }
 
 void PlayerControlledState::OnEnter(Player& player) {
-  player.MakeActionable();
+  player.MakeIdle();
 }
 
 void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
   // Actions with animation lockout controls take priority over movement
   const bool lockout = player.IsLockoutAnimationComplete();
-  // Player is idle
-  const bool actionable = player.IsActionable();
+  const bool isIdle = player.IsIdle();
   const bool canAttack = player.CanAttack();
   const bool isMoving = player.IsMoving();
   const bool isDragged = player.IsStatusApplied(Hit::drag);
@@ -97,10 +96,10 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
   } else if (player.InputState().Has(InputEvents::held_shoot)) {
     /* 
       During Drag, Player may not be moving, but could also not be idle.
-      This means actionable || IsMoving is false, yet they can charge.
+      This means isIdle || IsMoving is false, yet they can charge.
       To cover for this case, check for Drag.
     */
-    if (actionable || isMoving || isDragged) {
+    if (isIdle || isMoving || isDragged) {
       isChargeHeld = true;
       player.chargeEffect->SetCharging(true);
     }
@@ -123,7 +122,7 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
     direction = player.GetTeam() == Team::red ? Direction::right : Direction::left;
   }
 
-  if(direction != Direction::none && actionable && !player.IsRooted()) {
+  if(direction != Direction::none && isIdle && !player.IsRooted()) {
     Battle::Tile* next_tile = player.GetTile() + direction;
     std::shared_ptr<AnimationComponent> anim = player.GetFirstComponent<AnimationComponent>();
 
@@ -133,7 +132,7 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
       anim->CancelCallbacks();
 
       auto idle_callback = [player]() {
-        player->MakeActionable();
+        player->MakeIdle();
       };
 
       anim->SetAnimation(move_anim, idle_callback);

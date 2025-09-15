@@ -60,7 +60,7 @@ void CharacterTransformBattleState::UpdateAnimation(double elapsed)
         Audio().Play(AudioType::DEFORM);
       }
       else {
-        player->MakeActionable();
+        player->MakeIdle();
 
         if (player == GetScene().GetLocalPlayer()) {
           // only client player should remove their index information (e.g. PVP battles)

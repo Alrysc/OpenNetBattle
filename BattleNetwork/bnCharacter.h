@@ -72,8 +72,8 @@ public:
 
   virtual void OnBattleStop() override;
 
-  virtual void MakeActionable();
-  virtual bool IsActionable() const;
+  virtual void MakeIdle();
+  virtual bool IsIdle() const;
 
   const bool IsLockoutAnimationComplete();
 

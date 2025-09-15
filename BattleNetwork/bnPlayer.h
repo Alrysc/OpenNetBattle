@@ -85,8 +85,8 @@ public:
    */
   virtual void OnUpdate(double _elapsed);
 
-  void MakeActionable() override final;
-  bool IsActionable() const override final;
+  void MakeIdle() override final;
+  bool IsIdle() const override final;
 
   /**
    * @brief Fires a buster
