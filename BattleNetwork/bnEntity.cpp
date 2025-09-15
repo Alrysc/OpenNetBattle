@@ -196,8 +196,18 @@ void Entity::UpdateMovement(double elapsed)
           previousDirection = direction;
           Battle::Tile* currTile = GetTile();
 
+          /*
+            Do not check ice slide if the same Tile was moved to.
+            This prevents a case where sliding to your own Tile would
+            infinitely slide in place.
+
+            This same check is not used on Sand or Sea, so an Entity would
+            become rooted when moving to their own Tile in those cases.
+          */
+          const bool sameTile = prevTile == currTile;
+
           // If we slide onto an ice block and we don't have float shoe enabled, slide
-          if (tile->GetState() == TileState::ice && !HasFloatShoe()) {
+          if (!sameTile && tile->GetState() == TileState::ice && !HasFloatShoe()) {
             // calculate our new entity's position
             UpdateMoveStartPosition();
 
@@ -385,7 +395,7 @@ void Entity::Update(double _elapsed) {
 
   // Some statuses clear the action queue.
   // TODO: Neither FinishMove nor clearing the queue ends the animation initiated 
-  // by PlayerControlled state. This might be smoothly handled if the move
+  // by PlayerControlledState. This might be smoothly handled if the move
   // animation was actually a CardAction. Otherwise, make sure it's safe to enter
   // idle right here and do that instead.
   if ((newStatuses & (Hit::freeze | Hit::stun)) != 0) {
@@ -1504,6 +1514,7 @@ void Entity::ResolveFrameBattleDamage()
   if (dragWasReplaced) {
     FinishMove();
     statuses.AddStatus(Hit::drag, frames(22));
+    actionQueue.ClearQueue(ActionQueue::CleanupType::allow_interrupts);
   }
 
   // TODO: Drag during wind push will not overwrite? What about other movement, like ice, conveyor?
