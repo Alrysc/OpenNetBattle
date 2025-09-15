@@ -200,7 +200,19 @@ void Character::HandleCardEvent(const CardEvent& event, const ActionQueue::Execu
       CardActionUsePublisher::Broadcast(event.action, CurrentTime::AsMilli());
       actionQueue.Pop();
     }
-    else {
+    /*
+      Do not allow card to be used if Character cannot act. 
+      
+      Scripters are allowed to add actions while they cannot properly execute.
+      By doing check, they are kept in the queue until it is safe to stage the 
+      acton for use. This especially prevents situations where a CardAction's 
+      animation starts while the actor is, for example, stunned.
+
+      A different way to do this would be to clear the queue each frame while 
+      CanAttack returns false, but this would make it difficult to allow
+      certain CardActions that should be queued while unable to act.
+    */
+    else if (CanAttack()){
       cardActionStartDelay = frames(5);
       currCardAction = event.action;
     }
