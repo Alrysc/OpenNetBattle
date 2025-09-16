@@ -40,7 +40,7 @@ void BusterCardAction::OnExecute(std::shared_ptr<Character> user) {
   // On shoot frame, drop projectile
   auto onFire = [this, user]() -> void {
     Team team = user->GetTeam();
-    std::shared_ptr<Buster> b = std::make_shared<Buster>(team, charged, damage);
+    std::shared_ptr<Buster> b = std::make_shared<Buster>(team, charged, damage, user->GetID());
     std::shared_ptr<Field> field = user->GetField();
 
     b->SetMoveDirection(user->GetFacing());

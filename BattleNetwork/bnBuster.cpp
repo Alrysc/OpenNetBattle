@@ -10,8 +10,7 @@
 #include "bnAudioResourceManager.h"
 #include "bnRandom.h"
 
-// TODO: Buster props should have an aggressor set.
-Buster::Buster(Team _team, bool _charged, int damage) : isCharged(_charged), Spell(_team) {
+Buster::Buster(Team _team, bool _charged, int damage, EntityID_t aggressorId) : isCharged(_charged), Spell(_team) {
   SetPassthrough(true);
   SetLayer(-100);
 
@@ -34,6 +33,7 @@ Buster::Buster(Team _team, bool _charged, int damage) : isCharged(_charged), Spe
 
   auto props = Hit::DefaultProperties;
   props.flags = (props.flags | Hit::no_counter) & ~(Hit::flinch | Hit::flash);
+  props.aggressor = aggressorId;
 
   props.damage = damage;
   SetHitboxProperties(props);
