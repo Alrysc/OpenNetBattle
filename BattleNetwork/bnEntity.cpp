@@ -398,7 +398,7 @@ void Entity::Update(double _elapsed) {
   // by PlayerControlledState. This might be smoothly handled if the move
   // animation was actually a CardAction. Otherwise, make sure it's safe to enter
   // idle right here and do that instead.
-  if ((newStatuses & (Hit::freeze | Hit::stun)) != 0) {
+  if (newStatuses & (Hit::freeze | Hit::stun)) {
     FinishMove();
     actionQueue.ClearQueue(ActionQueue::CleanupType::allow_interrupts);
   }
@@ -427,7 +427,7 @@ void Entity::Update(double _elapsed) {
   /// Run all status callbacks, starting from lowest set bit
   Hit::Flags checkIdx = statusCheck & -statusCheck;
   while (statusCheck > 0) {
-    if ((statusCheck & checkIdx) != 0) {
+    if (statusCheck & checkIdx) {
       flagCheckThunk(checkIdx);
     }
 
@@ -1493,9 +1493,9 @@ void Entity::ResolveFrameBattleDamage()
       // Add the rest, starting from lowest set bit
       Hit::Flags curFlag = props.filtered.flags & -props.filtered.flags;
       while (props.filtered.flags > 0) {
-        if ((props.filtered.flags & curFlag) != 0) {
+        if (props.filtered.flags & curFlag) {
           statuses.AddStatus(curFlag);
-          props.filtered.flags = props.filtered.flags & ~curFlag;
+          props.filtered.flags &= ~curFlag;
         }
 
         curFlag = curFlag << 1;

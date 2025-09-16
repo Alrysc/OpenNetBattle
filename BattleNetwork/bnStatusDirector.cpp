@@ -170,7 +170,7 @@ void StatusBehaviorDirector::OnUpdate(double elapsed) {
 
     AppliedStatus& status = GetStatus(statusBit);
 
-    if (anyKey && (statusBit & (Hit::stun | Hit::freeze | Hit::bubble)) != 0) {
+    if (anyKey && (statusBit & (Hit::stun | Hit::freeze | Hit::bubble))) {
       status.remainingTime -= _elapsed;
     }
 
