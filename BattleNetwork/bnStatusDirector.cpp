@@ -70,13 +70,6 @@ void StatusBehaviorDirector::ProcessPendingStatuses() {
 }
 
 void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
-  // Timestop check. 
-  // TODO: Behavior does not currently happen here, but instead in Entity::Hit.
-  // Move that here, or remove this check.
-  if (false && (currentStatuses & Hit::freeze) == Hit::freeze) {
-    attack &= ~Hit::freeze;
-  }
-
   // Retangible removes active flash, but not queued.
   if ((attack & Hit::retangible) == Hit::retangible) {
     currentStatuses &= ~Hit::flash;
