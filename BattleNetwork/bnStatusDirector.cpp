@@ -198,11 +198,23 @@ void StatusBehaviorDirector::ClearStatus() {
   currentStatuses = Hit::none;
 };
 
-void StatusBehaviorDirector::ClearStatus(Hit::Flags flag) {
-  AppliedStatus& status = statusMap[flag];
-  status.remainingTime = frames(0);
-  queuedStatuses &= ~flag;
-  currentStatuses &= ~flag;
+void StatusBehaviorDirector::ClearStatus(Hit::Flags flags) {
+
+  // Start from lowest bit
+  Hit::Flags curFlag = flags & -flags;
+  while (flags > 0) {
+    if (flags & curFlag) {
+      AppliedStatus& status = statusMap[curFlag];
+      status.remainingTime = frames(0);
+      queuedStatuses &= ~curFlag;
+      currentStatuses &= ~curFlag;
+
+      flags &= ~curFlag;
+    }
+
+    curFlag = curFlag << 1;
+  }
+ 
 }
 
 const Hit::Flags StatusBehaviorDirector::GetQueuedStatuses() const {
