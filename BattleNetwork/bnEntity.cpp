@@ -356,6 +356,53 @@ void Entity::Init() {
   hasInit = true;
 }
 
+void Entity::HandleNewStatuses(const Hit::Flags prevStatuses, const Hit::Flags appliedStatuses) {
+
+  // Some statuses clear the action queue.
+  // TODO: Neither FinishMove nor clearing the queue ends the animation initiated 
+  // by PlayerControlledState. This might be smoothly handled if the move
+  // animation was actually a CardAction. Otherwise, make sure it's safe to enter
+  // idle right here and do that instead.
+  if (appliedStatuses & (Hit::freeze | Hit::stun)) {
+    FinishMove();
+    actionQueue.ClearQueue(ActionQueue::CleanupType::allow_interrupts);
+  }
+
+  if ((appliedStatuses & Hit::freeze) == Hit::freeze) {
+    IceFreeze();
+  }
+
+
+  if ((appliedStatuses & Hit::blind) == Hit::blind) {
+    Blind();
+  }
+
+  if ((appliedStatuses & Hit::retangible) == Hit::retangible) {
+    SetPassthrough(false);
+  }
+
+  // Now that all other behavior is done, run status callbacks
+
+  // a re-usable thunk for custom status effects
+  auto flagCheckThunk = [this](const Hit::Flags& toCheck) {
+    if (Entity::StatusCallback& func = statusCallbackHash[toCheck]) {
+      func();
+    }
+  };
+
+  Hit::Flags statusCheck = appliedStatuses;
+  /// Run all status callbacks, starting from lowest set bit
+  Hit::Flags checkIdx = statusCheck & -statusCheck;
+  while (statusCheck > 0) {
+    if (statusCheck & checkIdx) {
+      flagCheckThunk(checkIdx);
+    }
+
+    statusCheck = statusCheck & ~checkIdx;
+    checkIdx = checkIdx << 1;
+  }
+}
+
 void Entity::Update(double _elapsed) {
   ResolveFrameBattleDamage();
 
@@ -381,6 +428,7 @@ void Entity::Update(double _elapsed) {
   // when flashing was active and became inactive this frame.
   bool wasFlashing = statuses.IsApplied(Hit::flash);
 
+  Hit::Flags prevStatuses = statuses.GetCurrentStatuses();
   Hit::Flags queuedStatuses = statuses.GetQueuedStatuses();
 
   statuses.ProcessPendingStatuses();
@@ -390,50 +438,7 @@ void Entity::Update(double _elapsed) {
     statuses.OnUpdate(_elapsed);
   }
 
-  Hit::Flags currentStatuses = statuses.GetCurrentStatuses();
-  Hit::Flags newStatuses = queuedStatuses & currentStatuses;
-
-  // Some statuses clear the action queue.
-  // TODO: Neither FinishMove nor clearing the queue ends the animation initiated 
-  // by PlayerControlledState. This might be smoothly handled if the move
-  // animation was actually a CardAction. Otherwise, make sure it's safe to enter
-  // idle right here and do that instead.
-  if (newStatuses & (Hit::freeze | Hit::stun)) {
-    FinishMove();
-    actionQueue.ClearQueue(ActionQueue::CleanupType::allow_interrupts);
-  }
-
-  if ((newStatuses & Hit::freeze) == Hit::freeze) {
-    IceFreeze();
-  }
-
-
-  if ((newStatuses & Hit::blind) == Hit::blind) {
-    Blind();
-  }
-
-  if ((newStatuses & Hit::retangible) == Hit::retangible) {
-    SetPassthrough(false);
-  }
-
-  // a re-usable thunk for custom status effects
-  auto flagCheckThunk = [this](const Hit::Flags& toCheck) {
-    if (Entity::StatusCallback& func = statusCallbackHash[toCheck]) {
-      func();
-    }
-  };
-
-  Hit::Flags statusCheck = newStatuses;
-  /// Run all status callbacks, starting from lowest set bit
-  Hit::Flags checkIdx = statusCheck & -statusCheck;
-  while (statusCheck > 0) {
-    if (statusCheck & checkIdx) {
-      flagCheckThunk(checkIdx);
-    }
-
-    statusCheck = statusCheck & ~checkIdx;
-    checkIdx = checkIdx << 1;
-  }
+  HandleNewStatuses(prevStatuses, queuedStatuses & statuses.GetCurrentStatuses());
 
   RefreshShader();
 

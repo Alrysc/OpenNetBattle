@@ -18,7 +18,7 @@
 #include "bnCardToActions.h"
 
 // All statuses which should prevent Character from taking actions
-constexpr Hit::Flags blockingStatuses = Hit::stun | Hit::freeze | Hit::bubble | Hit::drag;
+constexpr const Hit::Flags blockingStatuses = Hit::stun | Hit::freeze | Hit::bubble | Hit::drag;
 
 Character::Character(Rank _rank) :
   rank(_rank),
@@ -241,3 +241,8 @@ void Character::HandlePeekEvent(const PeekCardEvent& event, const ActionQueue::E
 
   actionQueue.Pop();
 }
+
+const Hit::Flags Character::GetBlockingStatuses() const {
+  return blockingStatuses;
+}
+

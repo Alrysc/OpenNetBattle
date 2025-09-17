@@ -553,6 +553,24 @@ public:
 
   void ResolveFrameBattleDamage();
 
+
+  /**
+    @brief Runs reactions to statuses that were resolved this frame. This 
+    involves reactions specific to the Entity, such as Hit::freeze playing 
+    a sound effect, as well as running all appropriate status callbacks.
+
+    This does not include behavior related to ongoing statuses, such as 
+    animating blindFx.
+
+    @param prevStatuses, active statuses before new statuses were resolved
+    @param appliedStatuses, statuses that made it through the queue. This 
+    includes statuses which are now active, or statuses that would have become 
+    active if they were not already active (e.g. if queued and active statuses
+    included Hit::stun, and Hit::stun passed all filtering, its bit would be 
+    set)
+  */
+  virtual void HandleNewStatuses(const Hit::Flags prevStatuses, const Hit::Flags appliedStatuses);
+
   /**
    * @brief Get the character's current health
    * @return 

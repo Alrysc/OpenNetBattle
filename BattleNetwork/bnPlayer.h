@@ -163,7 +163,7 @@ public:
 
   std::shared_ptr<SyncNode> AddSyncNode(const std::string& point);
   void RemoveSyncNode(std::shared_ptr<SyncNode> syncNode);
-
+  virtual void HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags appliedStatuses) override;
 protected:
   // functions
   void FinishConstructor();

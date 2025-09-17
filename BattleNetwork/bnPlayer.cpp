@@ -39,17 +39,6 @@ Player::Player() :
   activeForm = nullptr;
   superArmor = std::make_shared<DefenseSuperArmor>();
 
-  auto flinch = [this]() {
-    ClearActionQueue();
-    Charge(false);
-
-    // At the end of flinch we need to be made idle if possible
-    SetAnimation(recoilAnimHash, [this] { MakeIdle();});
-    Audio().Play(AudioType::HURT, AudioPriority::lowest);
-  };
-
-  RegisterStatusCallback(Hit::flinch, Callback<void()>{ flinch });
-
   using namespace std::placeholders;
   auto handler = std::bind(&Player::HandleBusterEvent, this, _1, _2);
 
@@ -97,6 +86,34 @@ std::shared_ptr<SyncNode> Player::AddSyncNode(const std::string& point) {
 
 void Player::RemoveSyncNode(std::shared_ptr<SyncNode> syncNode) {
   syncNodeContainer.RemoveSyncNode(*this, *animationComponent, syncNode);
+}
+
+
+void Player::HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags appliedStatuses) {
+  // Tracks whether or not charge has already been cancelled, to avoid repeats
+  bool chargeCancel = false;
+
+  /* 
+    Clear Charge on flinch or any blocking status.
+
+    Action queue should be cleared on blocking status as well, 
+    but Entity::HandleNewStatuses already handles this.
+  */
+  if (appliedStatuses & (Hit::flinch | GetBlockingStatuses())) {
+    Charge(false);
+    chargeCancel = true;
+  }
+
+  if (appliedStatuses & Hit::flinch) {
+    ClearActionQueue();
+    Charge(false);
+
+    // At the end of flinch we need to be made idle if possible
+    SetAnimation(recoilAnimHash, [this] { MakeIdle(); });
+    Audio().Play(AudioType::HURT, AudioPriority::lowest);
+  }
+
+  Character::HandleNewStatuses(prevStatuses, appliedStatuses);
 }
 
 void Player::OnUpdate(double _elapsed) {
