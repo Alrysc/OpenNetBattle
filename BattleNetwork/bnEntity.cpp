@@ -790,6 +790,14 @@ void Entity::FinishMove()
   }
 }
 
+void Entity::EndDrag() {
+  statuses.ClearStatus(Hit::drag);
+  currentDrag.count = 0;
+  currentDrag.dir = Direction::none;
+  slideFromDrag = false;
+  FinishMove();
+}
+
 bool Entity::RawMoveEvent(const MoveEvent& event, ActionOrder order)
 {
   if (event.dest && CanMoveTo(event.dest)) {
@@ -1326,7 +1334,7 @@ const bool Entity::Hit(Hit::Properties props) {
     // TODO: Likely related to this, breaking clears frozen even when 
     // damage is blocked by defenses. Find out if this can be done, and also how 
     // defenses that trigger actions interact with this, and compare to stun.
-    statuses.ClearStatus(Hit::freeze);
+    ClearStatuses(Hit::freeze);
     iceFx->Hide();
 
     // Remove flinch from breaking attack if it did not have flinch | flash.
@@ -1685,6 +1693,13 @@ bool Entity::IsStatusApplied(Hit::Flags status) {
   return statuses.IsApplied(status);
 }
 
+void Entity::ClearStatuses(Hit::Flags flags) {
+  if ((flags & (statuses.GetQueuedStatuses() | statuses.GetCurrentStatuses())) & Hit::drag) {
+    EndDrag();
+  }
+
+  statuses.ClearStatus(flags);
+}
 
 void Entity::IceFreeze()
 {
@@ -1695,8 +1710,7 @@ void Entity::IceFreeze()
   // Removing stun here may be redundant with how the StatusBehaviorDirector filters 
   // freeze and stun.
   SetPassthrough(false);
-  statuses.ClearStatus(Hit::flash);
-  statuses.ClearStatus(Hit::stun);
+  ClearStatuses(Hit::flash | Hit::stun);
   Audio().Play(freezesfx, AudioPriority::highest);
 
   if (height <= 48) {

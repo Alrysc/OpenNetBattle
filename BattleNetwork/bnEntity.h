@@ -197,6 +197,18 @@ public:
   bool Slide(Battle::Tile* dest, const frame_time_t& slideTime, const frame_time_t& endlag, ActionOrder order = ActionOrder::voluntary, std::function<void()> onBegin = [] {});
   bool Jump(Battle::Tile* dest, float destHeight, const frame_time_t& jumpTime, const frame_time_t& endlag, ActionOrder order = ActionOrder::voluntary, std::function<void()> onBegin = [] {});
   void FinishMove();
+  /**
+  * @brief Resets currentDrag, sets slideFromDrag false, clears Drag status, 
+  * and calls FinishMove. 
+  *
+  * Used by the CharacterTransformBattleState, which must do these things
+  * before activating the new transformation.
+  *
+  * Note: If Drag was cleared on the same frame that a Drag movement was queued 
+  * and before the ActionQueue has processed, the movement from Drag may still 
+  * occur. 
+  */
+  void EndDrag();
   bool RawMoveEvent(const MoveEvent& event, ActionOrder order = ActionOrder::voluntary);
   void HandleMoveEvent(MoveEvent& event, const ActionQueue::ExecutionType& exec);
   void ClearActionQueue();
@@ -649,6 +661,19 @@ public:
   * @return true if entity has status applied, false otherwise
   */
   bool IsStatusApplied(Hit::Flags status);
+
+  /**
+  * @brief Clear all statuses in parameter flags, whether queued or applied.
+  * If Hit::drag is removed as a result of this, calls EndDrag. Because of 
+  * this, prefer calling this function when removing statuses instead of 
+  * directly accessing the underlying StatusBehaviorDirector.
+  *
+  * Note: If Drag was cleared on the same frame that a Drag movement was queued 
+  * and before the ActionQueue has processed, the movement from Drag may still 
+  * occur. 
+  * @param flags to clear
+  */
+  void ClearStatuses(Hit::Flags flags);
 
   /**
    * @brief Some characters allow others to move on top of them

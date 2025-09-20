@@ -430,6 +430,20 @@ void Player::ActivateFormAt(int index)
     activeForm = meta->BuildForm();
 
     if (activeForm) {
+      /* 
+        Consume pending statuses from attacks to queue them, so they can be
+        removed. 
+
+        This may have also added a MoveEvent for Drag. It's reasonable to 
+        ignore this and allow it to be cleared without processing. If it 
+        was processed, it would bepossible to snap two Tiles at once during 
+        transformation: One if the Player was moving by input, and again if 
+        a Drag was resolved.
+      */
+      ResolveFrameBattleDamage();
+      // Additionally clear Flinch, so Player never flinches afterwards
+      ClearStatuses(GetBlockingStatuses() | Hit::flinch);
+
       SaveStats();
       activeForm->OnActivate(shared_from_base<Player>());
       CreateMoveAnimHash();
@@ -438,9 +452,18 @@ void Player::ActivateFormAt(int index)
     }
   }
 
+  ClearActionQueue();
+  MakeIdle();
+
   // Cancel charging. This will also refresh charge times 
   // for the new form.
   Charge(false);
+
+  /*
+   If current state allows, Player can act immediately on the first
+   combat frame after the transform state finishes.
+ */
+  actionBlocked = CanAttackImpl();
 
   // Find nodes that do not have tags, those are newly added
   for (std::shared_ptr<SceneNode>& node : GetChildNodes()) {
