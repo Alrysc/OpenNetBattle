@@ -70,13 +70,15 @@ void StatusBehaviorDirector::ProcessPendingStatuses() {
 }
 
 void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
+  const Hit::Flags flinch_flash = Hit::flinch | Hit::flash;
+
   // Retangible removes active flash, but not queued.
   if ((attack & Hit::retangible) == Hit::retangible) {
     currentStatuses &= ~Hit::flash;
   }
 
   // Flinch|Flash cancels existing Freeze|Stun
-  if ((attack & (Hit::flinch | Hit::flash)) == (Hit::flinch | Hit::flash)) {
+  if ((attack & flinch_flash) == flinch_flash) {
     // If stun is already active, flinch | flash will prevent it from 
     // being added by this attack. That also means a freeze could be
     // committed.
@@ -85,6 +87,14 @@ void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
     }
 
     currentStatuses &= ~(Hit::freeze | Hit::stun);
+  }
+  // If attack did not have Flinch|Flash, some statuses are interested in 
+  // checking one of these flags.
+  else {
+    // If stunned is active, prevent flinch
+    if (((currentStatuses & Hit::stun) == Hit::stun) && (attack & Hit::flinch)) {
+      attack &= ~Hit::flinch;
+    }
   }
 
   // Drag cancels existing and queued Freeze
