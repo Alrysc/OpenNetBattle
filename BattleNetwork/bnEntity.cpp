@@ -190,7 +190,8 @@ void Entity::UpdateMovement(double elapsed)
         // Now that we have finished moving across panels, we must wait out endlag
         MoveEvent copyMoveEvent = currMoveEvent;
         frame_time_t lastFrame = currMoveEvent.delayFrames + currMoveEvent.deltaFrames + currMoveEvent.endlagFrames;
-        if (from_seconds(elapsedMoveTime) > lastFrame) {
+
+        if (from_seconds(elapsedMoveTime) >= lastFrame) {
           Battle::Tile* prevTile = previous;
           FinishMove(); // mutates `previous` ptr
           previousDirection = direction;
