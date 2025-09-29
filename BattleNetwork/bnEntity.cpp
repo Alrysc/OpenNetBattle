@@ -10,6 +10,7 @@
 #include "bnAudioResourceManager.h"
 #include <cmath>
 #include <Swoosh/Ease.h>
+#include "bnMoveEvent.h"
 
 long Entity::numOfIDs = 0;
 
@@ -25,7 +26,6 @@ bool EntityComparitor::operator()(Entity* f, Entity* s) const
 
 // First entity ID begins at 1
 Entity::Entity() : 
-  elapsedMoveTime(0),
   lastComponentID(0),
   height(0),
   moveCount(0),
@@ -131,141 +131,15 @@ void Entity::InsertComponentsPendingRegistration()
   sort ? SortComponents() : void(0);
 }
 
-void Entity::UpdateMovement(double elapsed)
-{
-  // Only move if we have a valid next tile pointer
-  Battle::Tile* next = currMoveEvent.dest;
-  if (next) {
-    if (currMoveEvent.onBegin) {
-      currMoveEvent.onBegin();
-      currMoveEvent.onBegin = nullptr;
-    }
-
-    elapsedMoveTime += elapsed;
-
-    if (from_seconds(elapsedMoveTime) > currMoveEvent.delayFrames) {
-      // Get a value from 0.0 to 1.0
-      float duration = seconds_cast<float>(currMoveEvent.deltaFrames);
-      float delta = swoosh::ease::linear(static_cast<float>(elapsedMoveTime - currMoveEvent.delayFrames.asSeconds().value), duration, 1.0f);
-      
-      sf::Vector2f pos = moveStartPosition;
-      sf::Vector2f tar = next->getPosition();
-
-      // Interpolate the sliding position from the start position to the end position
-      sf::Vector2f interpol = tar * delta + (pos * (1.0f - delta));
-      tileOffset = interpol - pos;
-
-      // Once halfway, the mmbn entities switch to the next tile
-      // and the slide position offset must be readjusted 
-      if (delta >= 0.5f) {
-        // conditions of the target tile may change, ensure by the time we switch
-        if (CanMoveTo(next)) {
-          if (tile != next) {
-            AdoptNextTile();
-          }
-
-          // Adjust for the new current tile, begin halfway approaching the current tile
-          tileOffset = -tar + pos + tileOffset;
-        }
-        else {
-          // Slide back into the origin tile if we can no longer slide to the next tile
-          moveStartPosition = next->getPosition();
-          currMoveEvent.dest = tile;
-
-          tileOffset = -tar + pos + tileOffset;
-        }
-      }
-
-      float heightElapsed = static_cast<float>(elapsedMoveTime - currMoveEvent.delayFrames.asSeconds().value);
-      float heightDelta = swoosh::ease::wideParabola(heightElapsed, duration, 1.0f);
-      currJumpHeight = (heightDelta * currMoveEvent.height);
-      tileOffset.y -= currJumpHeight;
-      
-      // When delta is 1.0, the slide duration is complete
-      if (delta == 1.0f)
-      {
-        // Slide or jump is complete, clear the tile offset used in those animations
-        tileOffset = { 0, 0 };
-
-        // Now that we have finished moving across panels, we must wait out endlag
-        MoveEvent copyMoveEvent = currMoveEvent;
-        frame_time_t lastFrame = currMoveEvent.delayFrames + currMoveEvent.deltaFrames + currMoveEvent.endlagFrames;
-
-        if (from_seconds(elapsedMoveTime) >= lastFrame) {
-          Battle::Tile* prevTile = previous;
-          FinishMove(); // mutates `previous` ptr
-          previousDirection = direction;
-          Battle::Tile* currTile = GetTile();
-
-          /*
-            Do not check ice slide if the same Tile was moved to.
-            This prevents a case where sliding to your own Tile would
-            infinitely slide in place.
-
-            This same check is not used on Sand or Sea, so an Entity would
-            become rooted when moving to their own Tile in those cases.
-          */
-          const bool sameTile = prevTile == currTile;
-
-          // If we slide onto an ice block and we don't have float shoe enabled, slide
-          if (!sameTile && tile->GetState() == TileState::ice && !HasFloatShoe()) {
-            // calculate our new entity's position
-            UpdateMoveStartPosition();
-
-            if (prevTile->GetX() > currTile->GetX()) {
-              next = GetField()->GetAt(GetTile()->GetX() - 1, GetTile()->GetY());
-              previousDirection = Direction::left;
-            }
-            else if (prevTile->GetX() < currTile->GetX()) {
-              next = GetField()->GetAt(GetTile()->GetX() + 1, GetTile()->GetY());
-              previousDirection = Direction::right;
-            }
-            else if (prevTile->GetY() < currTile->GetY()) {
-              next = GetField()->GetAt(GetTile()->GetX(), GetTile()->GetY() + 1);
-              previousDirection = Direction::down;
-            }
-            else if (prevTile->GetY() > currTile->GetY()) {
-              next = GetField()->GetAt(GetTile()->GetX(), GetTile()->GetY() - 1);
-              previousDirection = Direction::up;
-            }
-
-            // If the next tile is not available, not ice, or we are ice element, don't slide
-            bool notIce = (next && tile->GetState() != TileState::ice);
-            bool cannotMove = (next && !CanMoveTo(next));
-            bool weAreIce = (GetElement() == Element::aqua);
-            bool cancelSlide = (notIce || cannotMove || weAreIce);
-
-            if (slidesOnTiles && !cancelSlide) {
-              MoveEvent event = { frames(4), frames(0), frames(0), 0, tile + previousDirection };
-              RawMoveEvent(event, ActionOrder::immediate);
-              copyMoveEvent = {};
-            }
-          }
-          else if (tile->GetState() == TileState::sea && GetElement() != Element::aqua && !HasFloatShoe()) {
-            statuses.AddStatus(Hit::root, frames(20));
-            auto splash = std::make_shared<WaterSplash>();
-            field.lock()->AddEntity(splash, *tile);
-          }
-          else if (tile->GetState() == TileState::sand && !HasFloatShoe()) {
-            statuses.AddStatus(Hit::root, frames(20));
-          }
-          else {
-            // Invalidate the next tile pointer
-            next = nullptr;
-          }
-        }
-      }
-    }
-  }
-  else {
-    // If we don't have a valid next tile pointer or are not sliding,
-    // Keep centered in the current tile with no offset
-    tileOffset = sf::Vector2f(0, 0);
-    elapsedMoveTime = 0;
+void Entity::UpdateMovement(double elapsed) {
+  if (!currMoveEvent) {
+    return;
   }
 
-  if (tile) {
-    setPosition(tile->getPosition() + Entity::tileOffset + drawOffset);
+  currMoveEvent->Update();
+
+  if (currMoveEvent->IsFinished()) {
+    FinishMove();
   }
 }
 
@@ -434,10 +308,8 @@ void Entity::Update(double _elapsed) {
 
   statuses.ProcessPendingStatuses();
 
-  if (currentDrag.dir == Direction::none) {
-    // Tick all statuses at once
-    statuses.OnUpdate(_elapsed);
-  }
+  // Tick all statuses at once
+  statuses.OnUpdate(_elapsed);
 
   HandleNewStatuses(prevStatuses, queuedStatuses & statuses.GetCurrentStatuses());
 
@@ -536,12 +408,6 @@ void Entity::Update(double _elapsed) {
     // Add this offset onto our offsets
     setPosition(tile->getPosition().x + offset.x, tile->getPosition().y + offset.y);
   }
-
-  // If drag slide is over, reset the flag
-  if (!IsSliding() && slideFromDrag && currentDrag.count == 0) {
-    slideFromDrag = false;
-  }
-
 }
 
 
@@ -740,7 +606,10 @@ int Entity::GetAlpha()
 bool Entity::Teleport(Battle::Tile* dest, ActionOrder order, std::function<void()> onBegin) {
   if (dest && CanMoveTo(dest)) {
     frame_time_t endlagDelay = moveEndlagDelay ? *moveEndlagDelay : frame_time_t{};
-    MoveEvent event = { 0, moveStartupDelay, endlagDelay, 0, dest, onBegin };
+    
+    MoveEvent event = {
+      std::make_shared<MoveAction>(weak_from_this(), MoveData{dest, frames(0), moveStartupDelay, endlagDelay, 0.f, onBegin})
+    };
     actionQueue.Add(event, order, ActionDiscardOp::until_eof);
 
     return true;
@@ -754,7 +623,10 @@ bool Entity::Slide(Battle::Tile* dest,
 {
   if (dest && CanMoveTo(dest)) {
     frame_time_t endlagDelay = moveEndlagDelay ? *moveEndlagDelay : endlag;
-    MoveEvent event = { slideTime, moveStartupDelay, endlagDelay, 0, dest, onBegin };
+    MoveEvent event = {
+      
+      std::make_shared<MoveAction>(weak_from_this(), MoveData{dest, slideTime, frames(0), endlagDelay, 0.f, onBegin})
+    };
     actionQueue.Add(event, order, ActionDiscardOp::until_eof);
 
     return true;
@@ -770,7 +642,11 @@ bool Entity::Jump(Battle::Tile* dest, float destHeight,
 
   if (dest && CanMoveTo(dest)) {
     frame_time_t endlagDelay = moveEndlagDelay ? *moveEndlagDelay : endlag;
-    MoveEvent event = { jumpTime, moveStartupDelay, endlagDelay, destHeight, dest, onBegin };
+
+    
+    MoveEvent event = {
+      std::make_shared<MoveAction>(weak_from_this(), MoveData{dest, jumpTime, frames(0), endlagDelay, destHeight, onBegin})
+    };
     actionQueue.Add(event, order, ActionDiscardOp::until_eof);
 
     return true;
@@ -781,30 +657,45 @@ bool Entity::Jump(Battle::Tile* dest, float destHeight,
 
 void Entity::FinishMove()
 {
+  slideFromDrag = false;
+  if (!currMoveEvent) {
+    return;
+  }
+
   // completes the move or moves the object back
-  if (currMoveEvent.dest /*&& !currMoveEvent.immutable*/) {
+  if (currMoveEvent->data.dest /*&& !currMoveEvent.immutable*/) {
     AdoptNextTile();
     tileOffset = {};
-    currMoveEvent = {};
-    actionQueue.ClearFilters();
-    actionQueue.Pop();
   }
+
+  currMoveEvent = nullptr;
+  actionQueue.ClearFilters();
+  actionQueue.Pop();
 }
 
 void Entity::EndDrag() {
   statuses.ClearStatus(Hit::drag);
-  currentDrag.count = 0;
-  currentDrag.dir = Direction::none;
   slideFromDrag = false;
   FinishMove();
 }
 
 bool Entity::RawMoveEvent(const MoveEvent& event, ActionOrder order)
 {
-  if (event.dest && CanMoveTo(event.dest)) {
+  if (event.move->data.dest && CanMoveTo(event.move->data.dest)) {
     actionQueue.Add(event, order, ActionDiscardOp::until_eof);
 
     return true;
+  }
+
+  return false;
+}
+
+bool Entity::RawMoveEvent(const MoveData& data, ActionOrder order) {
+  if (data.dest) {
+    const MoveEvent e = {
+      std::make_shared<MoveAction>(weak_from_this(), data)
+    };
+    return RawMoveEvent(e, order);
   }
 
   return false;
@@ -817,13 +708,12 @@ void Entity::HandleMoveEvent(MoveEvent& event, const ActionQueue::ExecutionType&
     return;
   }
 
-  if (currMoveEvent.dest == nullptr && !IsRooted()) {
+  if (!currMoveEvent && !IsRooted()) {
     UpdateMoveStartPosition();
     FilterMoveEvent(event);
-    currMoveEvent = event;
+    currMoveEvent = event.move;
     moveEventFrame = this->frame;
     previous = tile;
-    elapsedMoveTime = 0;
     actionQueue.CreateDiscardFilter(ActionTypes::buster, ActionDiscardOp::until_resolve);
     actionQueue.CreateDiscardFilter(ActionTypes::peek_card, ActionDiscardOp::until_resolve);
   }
@@ -909,21 +799,21 @@ const sf::Vector2f Entity::GetDrawOffset() const
 
 const bool Entity::IsSliding() const
 {
-  bool is_moving = currMoveEvent.IsSliding();
+  bool is_moving = currMoveEvent && currMoveEvent->IsSliding();
 
   return is_moving;
 }
 
 const bool Entity::IsJumping() const
 {
-  bool is_moving = currMoveEvent.IsJumping();
+  bool is_moving = currMoveEvent && currMoveEvent->IsJumping();
 
   return is_moving && currJumpHeight > 0.f;
 }
 
 const bool Entity::IsTeleporting() const
 {
-  bool is_moving = currMoveEvent.IsTeleporting();
+  bool is_moving = currMoveEvent && currMoveEvent->IsTeleporting();
 
   return is_moving;
 }
@@ -1069,7 +959,7 @@ const Element Entity::GetElement() const
 
 void Entity::AdoptNextTile()
 {
-  Battle::Tile* next = currMoveEvent.dest;
+  Battle::Tile* next = currMoveEvent->data.dest;
   if (next == nullptr) {
     return;
   }
@@ -1189,7 +1079,7 @@ void Entity::ClearActionQueue()
 
 const float Entity::GetJumpHeight() const
 {
-  return currMoveEvent.height;
+  return currMoveEvent ? currMoveEvent->GetHeight() : 0.f;
 }
 
 void Entity::ShowShadow(bool enabled)
@@ -1436,7 +1326,10 @@ void Entity::ResolveFrameBattleDamage()
 
   std::queue<CombatHitProps> append;
 
-  bool dragWasReplaced = false;
+  // Adding drag creates a MmoveAction. Wait until statusQueue is done, 
+  // then create the MoveAction if this is true.
+  bool addDrag = false;
+  Hit::Drag currentDrag{};
 
   while (!statusQueue.empty()) {
     CombatHitProps props = statusQueue.front();
@@ -1461,7 +1354,7 @@ void Entity::ResolveFrameBattleDamage()
       // Drag replaces current Drag effects.
       // Do not consider Drag if it has no direction
       if ((props.filtered.flags & Hit::drag) == Hit::drag && props.filtered.drag.dir != Direction::none) {
-        dragWasReplaced = true;
+        addDrag = true;
         currentDrag = props.filtered.drag;
       }
 
@@ -1517,7 +1410,6 @@ void Entity::ResolveFrameBattleDamage()
 
       if (GetHealth() == 0) {
         currentDrag.dir = Direction::none; // Cancel slide post-status if blowing up
-        dragWasReplaced = true;
       }
     }
   } // end while-loop
@@ -1525,41 +1417,33 @@ void Entity::ResolveFrameBattleDamage()
   // A new Drag should immediately end current movement
   // TODO: Drag forcibly ends the movement. Find out if that counts as a movement, because FinishMove 
   // calls AdoptTile, which increases moveCount.
-  if (dragWasReplaced) {
+  if (addDrag) {
+    bool activeDrag = slideFromDrag;
+    // TODO: Drag during wind push will not overwrite? What about other movement, like ice, conveyor?
     FinishMove();
-    statuses.AddStatus(Hit::drag, frames(22));
+    // Preserve slideFromDrag. FinishMove sets false, but it must remain true 
+    // if Drag was already in effect, for status processing purposes.
+    // Otherwise, when this Hit::drag processes, it will process as if there was 
+    // not already an active Drag.
+    slideFromDrag = activeDrag;
+    statuses.AddStatus(Hit::drag);
+    
+    
     actionQueue.ClearQueue(ActionQueue::CleanupType::allow_interrupts);
-  }
+    /*
+      Do not set slideFromDrag true here. This could interfere with status 
+      processing after ResolveFrameBattleDamage. This will be set true 
+      by the StatusBehaviorDirector instead.
+     ------ slideFromDrag = true;
+    */
 
-  // TODO: Drag during wind push will not overwrite? What about other movement, like ice, conveyor?
-  if (!IsSliding() && currentDrag.dir != Direction::none) {
-    // enemies and objects on opposing side of field are granted immunity from drag
-    if (Teammate(GetTile()->GetTeam())) {
-      if (currentDrag.count > 0u) {
-        currentDrag.count -= 1u;
-      }
-      else {
-        currentDrag.dir = Direction::none;
-      }
+    actionQueue.Add(
+      MoveEvent{
+        std::make_shared<DragAction>(weak_from_this(), currentDrag)
+      },
+      ActionOrder::immediate, ActionDiscardOp::until_resolve
+    );
 
-      Battle::Tile* dest = GetTile() + currentDrag.dir;
-
-
-      // The final drag event should reset currentDrag.
-      // TODO: Ice slide should act the same as if the currentDrag.count did 
-      // not go down when reaching that Tile.
-      frame_time_t movetime = frames(4);
-      if (currentDrag.dir == Direction::none || !CanMoveTo(dest)) {
-        currentDrag.count = 0;
-        currentDrag.dir = Direction::none;
-      }
-      else {
-        actionQueue.ClearQueue(ActionQueue::CleanupType::allow_interrupts);
-        slideFromDrag = true;
-        // Enqueue a move action at the top of our priorities
-        actionQueue.Add(MoveEvent{ movetime, frames(0), frames(0), 0, dest, {}, true }, ActionOrder::immediate, ActionDiscardOp::until_resolve);
-      }      
-    }
   }
 
   if (GetHealth() == 0) {
@@ -1686,12 +1570,39 @@ bool Entity::IsBlind()
   return statuses.HasStatus(Hit::blind);
 }
 
-bool Entity::HasStatus(Hit::Flags status) {
-  return statuses.HasStatus(status);
+void Entity::AddStatus(Hit::Flags status) {
+  statuses.AddStatus(status);
 }
 
-bool Entity::IsStatusApplied(Hit::Flags status) {
-  return statuses.IsApplied(status);
+void Entity::AddStatus(Hit::Flags status, frame_time_t duration) {
+  statuses.AddStatus(status, duration);
+}
+
+const bool Entity::HasStatus(Hit::Flags status) const {
+  bool dragCheck = true;
+  if (status == Hit::drag) {
+    dragCheck = slideFromDrag;
+    status &= ~Hit::drag;
+  }
+
+  return dragCheck && statuses.HasStatus(status);
+}
+
+const bool Entity::HasAnyStatusFrom(Hit::Flags status) const {
+  if ((status & Hit::drag) == Hit::drag && slideFromDrag) {
+    return true;
+  }
+
+  return statuses.HasAnyStatusFrom(status);
+}
+
+const bool Entity::IsStatusApplied(Hit::Flags status) const {
+  bool dragCheck = true;
+  if (status == Hit::drag) {
+    dragCheck = slideFromDrag;
+    status &= ~Hit::drag;
+  }
+  return dragCheck && statuses.IsApplied(status);
 }
 
 void Entity::ClearStatuses(Hit::Flags flags) {

@@ -57,6 +57,10 @@ public:
     */ 
     const bool HasStatus(Hit::Flags flag) const;
     /*
+      Returns true if any flag in [flags] is uncommitted or applied.
+    */
+    const bool HasAnyStatusFrom(Hit::Flags flags) const;
+    /*
       Returns true only if flag isapplied.
     */
     const bool IsApplied(Hit::Flags flag) const;

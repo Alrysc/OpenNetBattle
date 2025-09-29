@@ -51,12 +51,17 @@ void StatusBehaviorDirector::ProcessPendingStatuses() {
   // Process only Drag if it's queued
   if ((queuedStatuses & Hit::drag) == Hit::drag) {
     ProcessFlags(Hit::drag);
+    // Drag is a special case where most behavior is handled 
+    // based on this bool. Set true after processing.
+    owner.slideFromDrag = true;
     queuedStatuses &= ~Hit::drag;
     return;
   }
 
-  // Do not process other flags if Drag is a current status
-  if((currentStatuses & Hit::drag) == Hit::drag) {
+  // Do not process other flags if Drag is a current status.
+  // Base this on Entity::slideFromDrag, as it more accurately 
+  // represents the special case of Drag.
+  if(owner.slideFromDrag) {
     return;
   }
 
@@ -92,6 +97,11 @@ void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
   // checking one of these flags.
   else {
     // If stunned is active, prevent flinch
+    /*
+      This should mean that an attack which ends stun and flinches will not flinch.
+      The only way for that to be the case when the attack doesn't also flash is 
+      with Drag | Flinch. TODO: Does an attack like that exist to test?
+    */
     if (((currentStatuses & Hit::stun) == Hit::stun) && (attack & Hit::flinch)) {
       attack &= ~Hit::flinch;
     }
@@ -107,9 +117,12 @@ void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
     // cleaner.
     queuedStatuses &= ~Hit::freeze;
 
-    if ((currentStatuses & Hit::drag) == Hit::drag) {
-        currentStatuses &= ~(Hit::stun | Hit::freeze);
-        queuedStatuses &= ~(Hit::stun | Hit::freeze);
+    // Cancel current or queued Stun and Freeze if Player has Drag.
+    // Base this on Entity::slideFromDrag, as it more accurately 
+    // represents the special case of Drag.
+    if (owner.slideFromDrag) {
+      currentStatuses &= ~(Hit::stun | Hit::freeze);
+      queuedStatuses &= ~(Hit::stun | Hit::freeze);
     }
   }
 
@@ -123,9 +136,17 @@ void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
 void StatusBehaviorDirector::OnUpdate(double elapsed) {
   frame_time_t _elapsed = from_seconds(elapsed);
 
-  if ((currentStatuses & Hit::drag) == Hit::drag) {
+  // Update only Drag if Entity is under Drag.
+  // Base this on Entity::slideFromDrag, as it more accurately 
+  // represents the special case of Drag.
+  // TODO: Because this is set false after move ends, Drag ends at EoF instead of start of next frame after movement. Good, bad?
+  if (owner.slideFromDrag) {
     AppliedStatus& drag = GetStatus(Hit::drag);
 
+    // Tick time down and remove even though Drag status is handled 
+    // more through Entity::slideFromDrag. The Hit::drag tracked on 
+    // this is still used to trigger status callbacks on hit, so tick 
+    // it down and remove as normal. 
     drag.remainingTime -= _elapsed;
 
     if (drag.remainingTime > frames(0)) {
@@ -134,18 +155,6 @@ void StatusBehaviorDirector::OnUpdate(double elapsed) {
 
     currentStatuses &= ~Hit::drag;
 
-    /* 
-      Other statuses never tick if Drag was handled during update, even
-      if Drag ended on this tick.
-
-      This is also safe with regards to Character::CanAttack's goal - even 
-      though Drag ended and a queued blocking status has not become active, 
-      CanAttack will return false this frame because of the cached part of 
-      CanAttack. It will also still return false for all relevant parts of 
-      the Entity::Update routine next frame, because a queued blocking status 
-      would become active near start of update, when StatusBehaviorDirector::OnUpdate 
-      next runs.
-    */
     return;
   }
 
@@ -230,6 +239,10 @@ const bool StatusBehaviorDirector::IsApplied(Hit::Flags flag) const {
 
 const bool StatusBehaviorDirector::HasStatus(Hit::Flags flag) const {
   return ((currentStatuses | queuedStatuses) & flag) == flag;
+}
+
+const bool StatusBehaviorDirector::HasAnyStatusFrom(Hit::Flags flags) const {
+  return ((currentStatuses | queuedStatuses) & flags);
 }
 
 const Hit::Flags StatusBehaviorDirector::GetCurrentStatuses() const {

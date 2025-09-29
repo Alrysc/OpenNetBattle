@@ -38,6 +38,7 @@ using std::string;
 #include "bnHitProperties.h"
 #include "stx/memory.h"
 #include "bnStatusDirector.h"
+#include "bnMoveEvent.h"
 
 namespace Battle {
   class Tile;
@@ -45,8 +46,14 @@ namespace Battle {
 }
 
 class Field;
-class BattleSceneBase; // forward decl
+class BattleSceneBase; 
 
+// Defined in bnMoveEvent.h
+class MoveAction;
+struct MoveEvent;
+struct MoveData;
+
+/*
 struct MoveEvent {
   frame_time_t deltaFrames{}; //!< Frames between tile A and B. If 0, teleport. Else, we could be sliding
   frame_time_t delayFrames{}; //!< Startup lag to be used with animations
@@ -54,7 +61,10 @@ struct MoveEvent {
   float height{}; //!< If this is non-zero with delta frames, the character will effectively jump
   Battle::Tile* dest{ nullptr };
   std::function<void()> onBegin = []{};
+
   bool immutable{ false }; //!< Some move events cannot be cancelled or interupted
+
+  std::function<void(const bool didReachDest, const bool willIceSlide)> onFinish = [](const bool didReachDest, const bool willIceSlide) {};
 
   //!< helper function true if jumping
   inline bool IsJumping() const {
@@ -71,6 +81,75 @@ struct MoveEvent {
     return dest && deltaFrames == frames(0) && (+height) == 0.0f;
   }
 };
+*/
+
+/*
+typedef std::function<void()> VoidCallback;
+typedef std::function<void(bool didReachDest, bool iceSliding)> MoveFinishCallback;
+
+class Entity;
+
+class MoveBehavior {
+public:
+  MoveBehavior() {}
+  virtual ~MoveBehavior() {}
+  virtual MoveFinishCallback apply() = 0;
+};
+
+class DragMoveBehavior : public MoveBehavior {
+  Entity* ent;
+  Hit::Drag drag{};
+  bool firstMovement{ true };
+
+public:
+  DragMoveBehavior(Entity* ent, Hit::Drag drag) : ent(ent), drag(drag), MoveBehavior() {}
+  DragMoveBehavior(Entity* ent, Hit::Drag drag, bool firstMovement) : ent(ent), drag(drag), firstMovement(firstMovement), MoveBehavior() {}
+
+  ~DragMoveBehavior() {}
+
+  MoveFinishCallback apply() override {
+    auto impl = [ent = ent, oldDrag = drag, firstMovement = firstMovement](bool didReachDest, bool iceSliding){
+      
+      // Clear queue to wipe a queued ice slide or other actions that are ahead of the Drag move.
+       // Only Drag will resolve.
+       ent->ClearActionQueue();
+
+
+       Hit::Drag newDrag = {oldDrag.dir, oldDrag.count };
+       // Entity must stop moving if the movement failed
+       if (!didReachDest) {
+         newDrag.count = 0;
+       }
+
+       frame_time_t moveTime = frames(4);
+
+       const bool noDir = newDrag.dir == Direction::none;
+       Battle::Tile* dest = noDir ? ent->GetTile() : ent->GetTile(newDrag.dir, 1);
+       const bool canReachDest = dest && ent->Teammate(ent->GetTile()->GetTeam()) && ent->CanMoveTo(dest);
+
+       const bool finalMove = noDir || !canReachDest || (newDrag.count == 0 && !iceSliding);
+       if (finalMove) {
+         dest = ent->GetTile();
+         moveTime = frames(firstMovement ? 24 : 20);
+       }
+
+       if (newDrag.count > 0) {
+         newDrag.count--;
+       }
+
+       const MoveEvent move = MoveEvent{
+         moveTime, frames(0), frames(0), 0, dest, {}, true,
+         !finalMove ? DragMoveBehavior(ent, newDrag, false).apply() : [ent = ent](bool _, bool __) {ent->ClearStatuses(Hit::drag); }
+       };
+
+
+       ent->actionQueue.Add(move, ActionOrder::immediate, ActionDiscardOp::until_resolve);
+    };
+
+    return impl;
+  }
+};
+*/
 
 struct CombatHitProps {
   Hit::Properties hitbox; // original hitbox data
@@ -110,6 +189,8 @@ public:
   friend class Field;
   friend class Component;
   friend class BattleSceneBase;
+  friend class StatusBehaviorDirector;
+  friend class MoveAction;
 
   enum class Shadow : char {
     none = 0,
@@ -131,7 +212,7 @@ private:
   float currJumpHeight{};
   float height{}; /*!< Height of the entity relative to tile floor. Used for visual effects like projectiles or for hitbox detection */
   EventBus::Channel channel; /*!< Our event bus channel to emit events */
-  MoveEvent currMoveEvent{};
+  std::shared_ptr<MoveAction> currMoveEvent;
   VirtualInputState inputState;
   std::shared_ptr<SpriteProxyNode> shadow{ nullptr };
   std::shared_ptr<SpriteProxyNode> iceFx{ nullptr };
@@ -198,8 +279,7 @@ public:
   bool Jump(Battle::Tile* dest, float destHeight, const frame_time_t& jumpTime, const frame_time_t& endlag, ActionOrder order = ActionOrder::voluntary, std::function<void()> onBegin = [] {});
   void FinishMove();
   /**
-  * @brief Resets currentDrag, sets slideFromDrag false, clears Drag status, 
-  * and calls FinishMove. 
+  * @brief Sets slideFromDrag false, clears Drag status, and calls FinishMove. 
   *
   * Used by the CharacterTransformBattleState, which must do these things
   * before activating the new transformation.
@@ -210,6 +290,8 @@ public:
   */
   void EndDrag();
   bool RawMoveEvent(const MoveEvent& event, ActionOrder order = ActionOrder::voluntary);
+  bool RawMoveEvent(const MoveData& data, ActionOrder order = ActionOrder::voluntary);
+
   void HandleMoveEvent(MoveEvent& event, const ActionQueue::ExecutionType& exec);
   void ClearActionQueue();
   const float GetJumpHeight() const;
@@ -646,6 +728,10 @@ public:
   */
   bool IsBlind();
 
+
+  void AddStatus(Hit::Flags status, frame_time_t duration);
+  void AddStatus(Hit::Flags status);
+
   /**
   * @brief Query if entity has a certain status tracked, whether queued or applied. 
   * A queued status may not be applied by end of frame, or may be nullified during
@@ -653,14 +739,22 @@ public:
   * @param status to query
   * @return true if entity has status applied OR queued, false otherwise
   */
-  bool HasStatus(Hit::Flags status);
-
+  const bool HasStatus(Hit::Flags status) const;
+  /**
+  * @brief Query if entity has at least one of certain statuses tracked, whether queued 
+  * or applied.
+  * A queued status may not be applied by end of frame, or may be nullified during
+  * status processing.
+  * @param statuses to query
+  * @return true if entity has any status in statuses
+  */
+  const bool HasAnyStatusFrom(Hit::Flags statuses) const;
   /**
   * @brief Query if entity is afflicted by a certain status
   * @param status to query
   * @return true if entity has status applied, false otherwise
   */
-  bool IsStatusApplied(Hit::Flags status);
+  const bool IsStatusApplied(Hit::Flags status) const;
 
   /**
   * @brief Clear all statuses in parameter flags, whether queued or applied.
@@ -930,7 +1024,6 @@ private:
   int maxHealth{};
   float elevation{}; // vector away from grid
   float counterSlideDelta{};
-  double elapsedMoveTime{}; /*!< delta time since recent move event began */
   Battle::TileHighlight mode; /*!< Highlight occupying tile */
   Hit::Properties hitboxProperties; /*!< Hitbox properties used when an entity is hit by this attack */
   Direction direction{};
@@ -943,7 +1036,6 @@ private:
   uint8_t statusShaderTimer{ 0 };
 
   std::queue<CombatHitProps> statusQueue;
-  Hit::Drag currentDrag{};
 
   sf::Shader* whiteout{ nullptr }; /*!< Flash white when hit */
   sf::Shader* stun{ nullptr };     /*!< Flicker yellow with luminance values when stun */

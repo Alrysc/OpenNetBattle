@@ -188,8 +188,8 @@ void DefineEntityFunctionsOn(sol::basic_usertype<WeakWrapper<E>, sol::basic_refe
       return entity.Unwrap()->Jump(dest, destHeight, jumpTime, endlag);
     }
   );
-  entity_table["raw_move_event"] = [](WeakWrapper<E>& entity, const MoveEvent& event, ActionOrder order) -> bool {
-    return entity.Unwrap()->RawMoveEvent(event, order);
+  entity_table["raw_move_event"] = [](WeakWrapper<E>& entity, const MoveData& data, ActionOrder order) -> bool {
+    return entity.Unwrap()->RawMoveEvent(data, order);
   };
   entity_table["is_sliding"] = [](WeakWrapper<E>& entity) -> bool {
     return entity.Unwrap()->IsSliding();
