@@ -460,10 +460,10 @@ void Player::ActivateFormAt(int index)
   Charge(false);
 
   /*
-   If current state allows, Player can act immediately on the first
-   combat frame after the transform state finishes.
+    If current state allows, Player can act immediately on the first
+    combat frame after the transform state finishes.
  */
-  actionBlocked = CanAttackImpl();
+  actionBlocked = !CanAttackImpl();
 
   // Find nodes that do not have tags, those are newly added
   for (std::shared_ptr<SceneNode>& node : GetChildNodes()) {
