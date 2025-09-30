@@ -165,11 +165,6 @@ void MoveAction::OnUpdate(frame_time_t elapsed) {
       }
     }
   }
- 
-
-  if (owner->GetTile()) {
-    owner->RefreshPosition();
-  }
 }
 
 bool MoveAction::IsPendingFinish() const {

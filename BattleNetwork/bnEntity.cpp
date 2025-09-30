@@ -133,13 +133,20 @@ void Entity::InsertComponentsPendingRegistration()
 
 void Entity::UpdateMovement(double elapsed) {
   if (!currMoveEvent) {
+    if (tile) {
+      RefreshPosition();
+    }
     return;
   }
 
-  currMoveEvent->Update();
+  currMoveEvent->OnUpdate(from_seconds(elapsed));
 
   if (currMoveEvent->IsFinished()) {
     FinishMove();
+  }
+
+  if (tile) {
+    RefreshPosition();
   }
 }
 
