@@ -298,7 +298,7 @@ void Entity::Update(double _elapsed) {
     health = 0;
 
     // Ensure status effects do not play out
-    statuses.ClearStatus();
+    statuses.ClearAllStatuses();
   }
 
   // reset base color
@@ -330,14 +330,6 @@ void Entity::Update(double _elapsed) {
   // The answer is likely yes.
   bool canUpdateThisFrame = !(frozen || stunned);
 
-  /*
-    TODO: Using Hide and Reveal here may conflict with user mods that
-    attempt to hide an Entity. Find some way to play nice. 
-
-    Example: AntiDamage mod, which hides the Character using it for 
-    some time. If triggered while flashing, they will unhide before 
-    they become vulnerable again.
-  */ 
   if (!hit) {
     AppliedStatus& flash = statuses.GetStatus(Hit::flash);
 
@@ -681,7 +673,7 @@ void Entity::FinishMove()
 }
 
 void Entity::EndDrag() {
-  statuses.ClearStatus(Hit::drag);
+  statuses.ClearStatuses(Hit::drag);
   slideFromDrag = false;
   FinishMove();
 }
@@ -935,7 +927,7 @@ void Entity::Delete()
 
   deleted = true;
 
-  statuses.ClearStatus();
+  statuses.ClearAllStatuses();
 
   OnDelete();
 }
@@ -1426,7 +1418,6 @@ void Entity::ResolveFrameBattleDamage()
   // calls AdoptTile, which increases moveCount.
   if (addDrag) {
     bool activeDrag = slideFromDrag;
-    // TODO: Drag during wind push will not overwrite? What about other movement, like ice, conveyor?
     FinishMove();
     // Preserve slideFromDrag. FinishMove sets false, but it must remain true 
     // if Drag was already in effect, for status processing purposes.
@@ -1454,7 +1445,7 @@ void Entity::ResolveFrameBattleDamage()
 
   if (GetHealth() == 0) {
     // We are dying. Prevent special fx and status animations from triggering.
-    statuses.ClearStatus();
+    statuses.ClearAllStatuses();
 
     while(statusQueue.size() > 0) {
       statusQueue.pop();
@@ -1612,11 +1603,7 @@ const bool Entity::IsStatusApplied(Hit::Flags status) const {
 }
 
 void Entity::ClearStatuses(Hit::Flags flags) {
-  if ((flags & (statuses.GetQueuedStatuses() | statuses.GetCurrentStatuses())) & Hit::drag) {
-    EndDrag();
-  }
-
-  statuses.ClearStatus(flags);
+  statuses.ClearStatuses(flags);
 }
 
 void Entity::IceFreeze()

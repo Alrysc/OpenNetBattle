@@ -37,13 +37,13 @@ public:
     AppliedStatus& GetStatus(Hit::Flags flag);
     const Hit::Flags GetQueuedStatuses() const;
     const Hit::Flags GetCurrentStatuses() const;
-    void ClearStatus();
+    void ClearAllStatuses();
     /*
       Clear specific flags from queued and active statuses. 
       Parameter flags may contain multiple Hit::Flags bits set. Each corresponding 
       status will be cleared.
     */
-    void ClearStatus(Hit::Flags flags);
+    void ClearStatuses(Hit::Flags flags);
     /*
       Process current queuedStatuses. The result of GetQueuedStatuses and 
       GetCurrentStatuses may be different before and after calling this. 

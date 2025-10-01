@@ -202,7 +202,7 @@ AppliedStatus& StatusBehaviorDirector::GetStatus(Hit::Flags flag) {
   return status;
 };
 
-void StatusBehaviorDirector::ClearStatus() {
+void StatusBehaviorDirector::ClearAllStatuses() {
   for (auto& [_, status] : statusMap) {
       status.remainingTime = frames(0);
   }
@@ -211,7 +211,7 @@ void StatusBehaviorDirector::ClearStatus() {
   currentStatuses = Hit::none;
 };
 
-void StatusBehaviorDirector::ClearStatus(Hit::Flags flags) {
+void StatusBehaviorDirector::ClearStatuses(Hit::Flags flags) {
 
   // Start from lowest bit
   Hit::Flags curFlag = flags & -flags;
