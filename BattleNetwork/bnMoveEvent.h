@@ -49,10 +49,7 @@ public:
   bool IsJumping() const;
   bool IsSliding() const;
   bool IsTeleporting() const;
-  void OnUpdate(frame_time_t elapsed);
-
-  // Explicitly calls one frame of [OnUpdate].
-  virtual void Update() { OnUpdate(frames(1)); }
+  virtual void OnUpdate(frame_time_t elapsed);
 protected:
   std::weak_ptr<Entity> owner;
   frame_time_t elapsedFrames{};
