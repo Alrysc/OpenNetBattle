@@ -263,8 +263,6 @@ void MoveAction::ResetWith(const MoveData& newData)
   UpdateMoveStartPosition();
 }
 
-
-
 // dest is nullptr until Begin
 DragAction::DragAction(std::weak_ptr<Entity> owner, Hit::Drag drag) : drag(drag), MoveAction(owner, {}) 
 {

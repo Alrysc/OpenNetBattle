@@ -15,9 +15,9 @@ struct MoveEvent {
 };
 
 /*
-  Contains data used to create a generic MoveEventClass.
-  Useful as shorthand for creating a new MoveEventClass through
-  RawMoveEvent, or as an entry point to creating a C++ MoveEventClass
+  Contains data used to create a generic MoveAction.
+  Useful as shorthand for creating a new MoveAction through
+  RawMoveEvent, or as an entry point to creating a C++ MoveAction
   from scripting.
 */
 struct MoveData {
@@ -79,12 +79,6 @@ protected:
     or making calls for the additional movement.
   */
   virtual void OnPostMove();
-
-  /*
-    Terminates the MoveEvent
-  
-  virtual void Interrupt() = 0;
-  */
 
   /*
     Prepares the MoveEvent for a new movement using given

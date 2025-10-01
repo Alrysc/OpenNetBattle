@@ -65,7 +65,6 @@ void StatusBehaviorDirector::ProcessPendingStatuses() {
     return;
   }
 
-  
   if (queuedStatuses == 0) {
     return;
   }
@@ -139,14 +138,16 @@ void StatusBehaviorDirector::OnUpdate(double elapsed) {
   // Update only Drag if Entity is under Drag.
   // Base this on Entity::slideFromDrag, as it more accurately 
   // represents the special case of Drag.
-  // TODO: Because this is set false after move ends, Drag ends at EoF instead of start of next frame after movement. Good, bad?
+  // Because this is set false after move ends, Drag ends at EoF 
+  // instead of start of next frame after movement, contrary to 
+  // other statuses.
   if (owner.slideFromDrag) {
     AppliedStatus& drag = GetStatus(Hit::drag);
 
-    // Tick time down and remove even though Drag status is handled 
-    // more through Entity::slideFromDrag. The Hit::drag tracked on 
-    // this is still used to trigger status callbacks on hit, so tick 
-    // it down and remove as normal. 
+    // Tick time down and remove even though Drag effects are handled 
+    // using Entity::slideFromDrag instead of the Hit::drag status. 
+    // The Hit::drag tracked on this is still used to trigger status 
+    // callbacks on hit, so tick it down and remove as with other statuses. 
     drag.remainingTime -= _elapsed;
 
     if (drag.remainingTime > frames(0)) {

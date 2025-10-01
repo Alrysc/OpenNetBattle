@@ -436,7 +436,7 @@ void Player::ActivateFormAt(int index)
 
         This may have also added a MoveEvent for Drag. It's reasonable to 
         ignore this and allow it to be cleared without processing. If it 
-        was processed, it would bepossible to snap two Tiles at once during 
+        was processed, it would be possible to snap two Tiles at once during 
         transformation: One if the Player was moving by input, and again if 
         a Drag was resolved.
       */

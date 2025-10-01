@@ -670,7 +670,7 @@ void Entity::FinishMove()
   }
 
   // completes the move or moves the object back
-  if (currMoveEvent->data.dest /*&& !currMoveEvent.immutable*/) {
+  if (currMoveEvent->data.dest) {
     AdoptNextTile();
     tileOffset = {};
   }
@@ -1441,7 +1441,6 @@ void Entity::ResolveFrameBattleDamage()
       Do not set slideFromDrag true here. This could interfere with status 
       processing after ResolveFrameBattleDamage. This will be set true 
       by the StatusBehaviorDirector instead.
-     ------ slideFromDrag = true;
     */
 
     actionQueue.Add(
