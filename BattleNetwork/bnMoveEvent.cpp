@@ -6,7 +6,7 @@
 
 /// class MoveAction ///
 
-MoveAction::MoveAction(std::weak_ptr<Entity> owner, const MoveData& data)
+MoveAction::MoveAction(Entity& owner, const MoveData& data)
   : owner(owner), data(data) 
 {
 }
@@ -51,31 +51,31 @@ bool MoveAction::IsTeleporting() const
 
 sf::Vector2f MoveAction::GetOwnerStartPosition() 
 {
-  return owner.lock()->moveStartPosition;
+  return owner.moveStartPosition;
 }
 
 void MoveAction::SetOwnerStartPosition(sf::Vector2f offset) 
 {
-  owner.lock()->moveStartPosition = offset;
+  owner.moveStartPosition = offset;
 }
 
 void MoveAction::SetOwnerJumpHeight(float height) 
 {
-  owner.lock()->currJumpHeight = height;
+  owner.currJumpHeight = height;
 }
 
 void MoveAction::SetOwnerPreviousDirection(Direction dir) 
 {
-  owner.lock()->previousDirection = dir;
+  owner.previousDirection = dir;
 }
 
 Battle::Tile* MoveAction::GetOwnerPreviousTile() 
 {
-  return owner.lock()->previous;
+  return owner.previous;
 }
 
 void MoveAction::UpdateMoveStartPosition() {
-  owner.lock()->UpdateMoveStartPosition();
+  owner.UpdateMoveStartPosition();
 }
 
 void MoveAction::OnUpdate(frame_time_t elapsed) {
@@ -87,15 +87,13 @@ void MoveAction::OnUpdate(frame_time_t elapsed) {
   // before terminating for nullptr dest.
   Begin();
 
-  auto owner = this->owner.lock();
-
   // Only move if we have a valid next tile pointer.
   // Move is marked complete if there is no destination.
   if (!data.dest)
   {
-    if (owner->GetTile())
+    if (owner.GetTile())
     {
-      owner->RefreshPosition();
+      owner.RefreshPosition();
     }
 
     completed = true;
@@ -105,7 +103,7 @@ void MoveAction::OnUpdate(frame_time_t elapsed) {
   // Only move if we have a valid next tile pointer
 
   Battle::Tile* next = data.dest;
-  Battle::Tile* currTile = owner->GetTile();
+  Battle::Tile* currTile = owner.GetTile();
 
   elapsedFrames += elapsed;
 
@@ -117,7 +115,7 @@ void MoveAction::OnUpdate(frame_time_t elapsed) {
     sf::Vector2f pos = GetOwnerStartPosition();
     sf::Vector2f tar = next->getPosition();
 
-    sf::Vector2f tileOffset = owner->GetTileOffset();
+    sf::Vector2f tileOffset = owner.GetTileOffset();
     // Interpolate the sliding position from the start position to the end position
     sf::Vector2f interpol = tar * delta + (pos * (1.0f - delta));
     tileOffset = interpol - pos;
@@ -126,10 +124,10 @@ void MoveAction::OnUpdate(frame_time_t elapsed) {
     // and the slide position offset must be readjusted 
     if (delta >= 0.5f) {
       // conditions of the target tile may change, ensure by the time we switch
-      if (owner->CanMoveTo(next)) {
+      if (owner.CanMoveTo(next)) {
         reachedDest = true;
         if (currTile != next) {
-          owner->AdoptNextTile();
+          owner.AdoptNextTile();
         }
 
         // Adjust for the new current tile, begin halfway approaching the current tile
@@ -150,15 +148,15 @@ void MoveAction::OnUpdate(frame_time_t elapsed) {
     float heightDelta = swoosh::ease::wideParabola(heightElapsed, duration, 1.0f);
       
     SetOwnerJumpHeight(heightDelta * data.height);
-    tileOffset.y -= owner->GetCurrJumpHeight();
-    owner->SetTileOffset(tileOffset);
+    tileOffset.y -= owner.GetCurrJumpHeight();
+    owner.SetTileOffset(tileOffset);
 
     // When delta is 1.0, the slide duration is complete
     if (delta == 1.0f)
     {
       // Slide or jump is complete, clear the tile offset used in those animations
       tileOffset = { 0, 0 };
-      owner->SetTileOffset(tileOffset);
+      owner.SetTileOffset(tileOffset);
 
       if (IsPendingFinish()) {
         OnPostMove();
@@ -172,11 +170,9 @@ bool MoveAction::IsPendingFinish() const {
 }
 
 void MoveAction::OnPostMove() {
-  auto owner = this->owner.lock();
-
   Battle::Tile* prevTile = GetOwnerPreviousTile();
-  Direction previousDirection = owner->GetMoveDirection();
-  Battle::Tile* currTile = owner->GetTile();
+  Direction previousDirection = owner.GetMoveDirection();
+  Battle::Tile* currTile = owner.GetTile();
 
   /*
     Do not check ice slide if the same Tile was moved to.
@@ -189,9 +185,9 @@ void MoveAction::OnPostMove() {
   const bool sameTile = prevTile == currTile;
   bool willIceSlide = false;
 
-  std::shared_ptr<Field> field = owner->GetField();
+  std::shared_ptr<Field> field = owner.GetField();
 
-  if (!sameTile && currTile->GetState() == TileState::ice && !owner->HasFloatShoe()) {
+  if (!sameTile && currTile->GetState() == TileState::ice && !owner.HasFloatShoe()) {
     const int tileX = currTile->GetX();
     const int tileY = currTile->GetY();
 
@@ -215,11 +211,11 @@ void MoveAction::OnPostMove() {
 
     // If the next tile is not available, not ice, or we are ice element, don't slide
     bool notIce = (next && currTile->GetState() != TileState::ice);
-    bool cannotMove = (next && !owner->CanMoveTo(next));
-    bool weAreIce = (owner->GetElement() == Element::aqua);
+    bool cannotMove = (next && !owner.CanMoveTo(next));
+    bool weAreIce = (owner.GetElement() == Element::aqua);
     bool cancelSlide = (notIce || cannotMove || weAreIce);
 
-    willIceSlide = owner->WillSlideOnTiles() && !cancelSlide;
+    willIceSlide = owner.WillSlideOnTiles() && !cancelSlide;
   }
 
   SetOwnerPreviousDirection(previousDirection);
@@ -235,19 +231,18 @@ void MoveAction::OnPostMove() {
   // TODO: Determine if these really should wait for endlag to be finished.
   // It's possible OnPostMove should run before endlag is considered, which 
   // could overwrite endlag for ice slide.
-  if (currTile->GetState() == TileState::sea && owner->GetElement() != Element::aqua && !owner->HasFloatShoe()) {
-    owner->AddStatus(Hit::root, frames(20));
+  if (currTile->GetState() == TileState::sea && owner.GetElement() != Element::aqua && !owner.HasFloatShoe()) {
+    owner.AddStatus(Hit::root, frames(20));
     auto splash = std::make_shared<WaterSplash>();
     field->AddEntity(splash, *currTile);
   }
-  else if (currTile->GetState() == TileState::sand && !owner->HasFloatShoe()) {
-    owner->AddStatus(Hit::root, frames(20));
+  else if (currTile->GetState() == TileState::sand && !owner.HasFloatShoe()) {
+    owner.AddStatus(Hit::root, frames(20));
   }
 }
 
 void MoveAction::UpdatePreviousTile() {
-  auto owner = this->owner.lock();
-  owner->previous = data.dest ? data.dest : owner->GetTile();
+  owner.previous = data.dest ? data.dest : owner.GetTile();
 }
 
 void MoveAction::ResetWith(const MoveData& newData)
@@ -264,7 +259,7 @@ void MoveAction::ResetWith(const MoveData& newData)
 }
 
 // dest is nullptr until Begin
-DragAction::DragAction(std::weak_ptr<Entity> owner, Hit::Drag drag) : drag(drag), MoveAction(owner, {}) 
+DragAction::DragAction(Entity& owner, Hit::Drag drag) : drag(drag), MoveAction(owner, {}) 
 {
 }
 
@@ -279,7 +274,6 @@ void DragAction::Begin() {
 
 void DragAction::PrepareFinalMove() {
   startedFinalMove = true;
-  auto owner = this->owner.lock();
   /*
     On timing:
 
@@ -292,7 +286,7 @@ void DragAction::PrepareFinalMove() {
 
     Note that, because 
   */
-  ResetWith(MoveData{ owner->GetTile(), frames(firstMove ? 26 : 23), frames(0), frames(0), 0.f, nullptr});
+  ResetWith(MoveData{ owner.GetTile(), frames(firstMove ? 26 : 23), frames(0), frames(0), 0.f, nullptr});
 }
 
 void DragAction::PrepareMovement() {
@@ -300,10 +294,9 @@ void DragAction::PrepareMovement() {
     return;
   }
 
-  auto owner = this->owner.lock();
-  Battle::Tile* currTile = owner->GetTile();
+  Battle::Tile* currTile = owner.GetTile();
   const bool noDir = drag.dir == Direction::none;
-  Battle::Tile* dest = noDir ? currTile : owner->GetTile(drag.dir, 1);
+  Battle::Tile* dest = noDir ? currTile : owner.GetTile(drag.dir, 1);
 
   if (!(dest && currTile)) {
     PrepareFinalMove();
@@ -311,10 +304,10 @@ void DragAction::PrepareMovement() {
   }
 
 
-  const bool canReachDest = owner->Teammate(currTile->GetTeam()) && owner->CanMoveTo(dest);
+  const bool canReachDest = owner.Teammate(currTile->GetTeam()) && owner.CanMoveTo(dest);
   // False if firstMove true, because reachedDest is always false on the first 
   // movement. 
-  const bool canIceSlide = this->reachedDest && owner->WillSlideOnTiles() && currTile->GetState() == TileState::ice && owner->GetElement() != Element::aqua;
+  const bool canIceSlide = this->reachedDest && owner.WillSlideOnTiles() && currTile->GetState() == TileState::ice && owner.GetElement() != Element::aqua;
 
 
   // Ice slide allows 0 count Drag to continue moving.

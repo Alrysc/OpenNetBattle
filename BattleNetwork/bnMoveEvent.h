@@ -35,7 +35,7 @@ class MoveAction {
 public:
   MoveData data;
 
-  MoveAction(std::weak_ptr<Entity> owner, const MoveData& data);
+  MoveAction(Entity& owner, const MoveData& data);
 
   // The underlining move event data may have completed, but the move action
   // as a whole may queue additional move events (e.g. DragAction).
@@ -51,7 +51,7 @@ public:
   bool IsTeleporting() const;
   virtual void OnUpdate(frame_time_t elapsed);
 protected:
-  std::weak_ptr<Entity> owner;
+  Entity& owner;
   frame_time_t elapsedFrames{};
   /*
     Whether or not the MoveEvent is complete.
@@ -132,6 +132,6 @@ protected:
   void OnPostMove() override;
 
 public:
-  DragAction(std::weak_ptr<Entity> owner, Hit::Drag drag);
+  DragAction(Entity& owner, Hit::Drag drag);
 
 };

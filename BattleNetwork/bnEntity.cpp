@@ -607,7 +607,7 @@ bool Entity::Teleport(Battle::Tile* dest, ActionOrder order, std::function<void(
     frame_time_t endlagDelay = moveEndlagDelay ? *moveEndlagDelay : frame_time_t{};
     
     MoveEvent event = {
-      std::make_shared<MoveAction>(weak_from_this(), MoveData{dest, frames(0), moveStartupDelay, endlagDelay, 0.f, onBegin})
+      std::make_shared<MoveAction>(*this, MoveData{dest, frames(0), moveStartupDelay, endlagDelay, 0.f, onBegin})
     };
     actionQueue.Add(event, order, ActionDiscardOp::until_eof);
 
@@ -623,8 +623,7 @@ bool Entity::Slide(Battle::Tile* dest,
   if (dest && CanMoveTo(dest)) {
     frame_time_t endlagDelay = moveEndlagDelay ? *moveEndlagDelay : endlag;
     MoveEvent event = {
-      
-      std::make_shared<MoveAction>(weak_from_this(), MoveData{dest, slideTime, frames(0), endlagDelay, 0.f, onBegin})
+      std::make_shared<MoveAction>(*this, MoveData{dest, slideTime, frames(0), endlagDelay, 0.f, onBegin})
     };
     actionQueue.Add(event, order, ActionDiscardOp::until_eof);
 
@@ -644,7 +643,7 @@ bool Entity::Jump(Battle::Tile* dest, float destHeight,
 
     
     MoveEvent event = {
-      std::make_shared<MoveAction>(weak_from_this(), MoveData{dest, jumpTime, frames(0), endlagDelay, destHeight, onBegin})
+      std::make_shared<MoveAction>(*this, MoveData{dest, jumpTime, frames(0), endlagDelay, destHeight, onBegin})
     };
     actionQueue.Add(event, order, ActionDiscardOp::until_eof);
 
@@ -692,7 +691,7 @@ bool Entity::RawMoveEvent(const MoveEvent& event, ActionOrder order)
 bool Entity::RawMoveEvent(const MoveData& data, ActionOrder order) {
   if (data.dest) {
     const MoveEvent e = {
-      std::make_shared<MoveAction>(weak_from_this(), data)
+      std::make_shared<MoveAction>(*this, data)
     };
     return RawMoveEvent(e, order);
   }
@@ -1436,7 +1435,7 @@ void Entity::ResolveFrameBattleDamage()
 
     actionQueue.Add(
       MoveEvent{
-        std::make_shared<DragAction>(weak_from_this(), currentDrag)
+        std::make_shared<DragAction>(*this, currentDrag)
       },
       ActionOrder::immediate, ActionDiscardOp::until_resolve
     );
