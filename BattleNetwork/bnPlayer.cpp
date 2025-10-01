@@ -99,7 +99,7 @@ void Player::HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags applied
     Action queue should be cleared on blocking status as well, 
     but Entity::HandleNewStatuses already handles this.
   */
-  if (appliedStatuses & (Hit::flinch | GetBlockingStatuses())) {
+  if (appliedStatuses & (Hit::flinch | Character::blockingStatuses)) {
     Charge(false);
     chargeCancel = true;
   }
@@ -442,7 +442,7 @@ void Player::ActivateFormAt(int index)
       */
       ResolveFrameBattleDamage();
       // Additionally clear Flinch, so Player never flinches afterwards
-      ClearStatuses(GetBlockingStatuses() | Hit::flinch);
+      ClearStatuses(Character::blockingStatuses | Hit::flinch);
 
       SaveStats();
       activeForm->OnActivate(shared_from_base<Player>());

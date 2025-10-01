@@ -49,6 +49,8 @@ private:
   std::shared_ptr<CardAction> currCardAction{ nullptr };
   frame_time_t cardActionStartDelay{0};
 public:
+  // Flags which should should block actions for Characters
+  static const Hit::Flags blockingStatuses = Hit::stun | Hit::freeze | Hit::bubble | Hit::drag;
 
   /**
    * @class Rank
@@ -111,11 +113,6 @@ public:
   void AddAction(const PeekCardEvent& event, const ActionOrder& order);
   void HandleCardEvent(const CardEvent& event, const ActionQueue::ExecutionType& exec);
   void HandlePeekEvent(const PeekCardEvent& event, const ActionQueue::ExecutionType& exec);
-  /**
-  * @brief Returns Hit::Flags containing flags which should block actions.
-  * @return const Hit::Flags representing blocking statuses
-  */
-  const Hit::Flags GetBlockingStatuses() const;
 
 protected:
   Character::Rank rank;
