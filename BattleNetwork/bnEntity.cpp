@@ -318,7 +318,7 @@ void Entity::Update(double _elapsed) {
   // Tick all statuses at once
   statuses.OnUpdate(_elapsed);
 
-  HandleNewStatuses(prevStatuses, queuedStatuses & statuses.GetCurrentStatuses());
+  HandleNewStatuses(prevStatuses, queuedStatuses & ~statuses.GetQueuedStatuses() & statuses.GetCurrentStatuses());
 
   RefreshShader();
 
