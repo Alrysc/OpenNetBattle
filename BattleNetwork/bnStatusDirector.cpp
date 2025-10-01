@@ -144,10 +144,18 @@ void StatusBehaviorDirector::OnUpdate(double elapsed) {
   if (owner.slideFromDrag) {
     AppliedStatus& drag = GetStatus(Hit::drag);
 
-    // Tick time down and remove even though Drag effects are handled 
-    // using Entity::slideFromDrag instead of the Hit::drag status. 
-    // The Hit::drag tracked on this is still used to trigger status 
-    // callbacks on hit, so tick it down and remove as with other statuses. 
+    /*
+      Tick time down and remove Drag even though Drag effects may continue.
+
+      Drag is a special case where the status is active for an 
+      indeterminable amount of time, so its effects are based on 
+      Entity::sildeFromDrag instead of this tracked Hit::drag. This means the
+      status can safely be removed long before its effects are over. 
+
+      To trigger status callbacks on hit, Hit::drag still passes through the 
+      StatusBehaviorDirector, so tick it down and remove as with other statuses. 
+    */
+    
     drag.remainingTime -= _elapsed;
 
     if (drag.remainingTime > frames(0)) {
