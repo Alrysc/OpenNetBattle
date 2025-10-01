@@ -40,7 +40,7 @@ bool MoveAction::IsJumping() const
 //!< helper function true if sliding
 bool MoveAction::IsSliding() const 
 {
-  return data.dest && data.deltaFrames > frames(0) && data.height <= 0.0f;
+  return data.dest && data.deltaFrames > frames(0) && (+data.height) <= 0.0f;
 }
 
 //!< helper function true if normal moving
