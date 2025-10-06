@@ -158,6 +158,9 @@ void TimeFreezeBattleState::onUpdate(double elapsed)
       summonTick = frames(0);
     }
 
+    // Uses same comparison as CanCounter.
+    // If they were different, a counter could happen after 
+    // ExecuteTimeFreeze was already called.
     if (summonTick >= summonTextLength) {
       scene.HighlightTiles(true); // re-enable tile highlighting for new entities
       currState = state::animate; // animate this attack
@@ -473,7 +476,11 @@ void TimeFreezeBattleState::OnCardActionUsed(std::shared_ptr<CardAction> action,
 const bool TimeFreezeBattleState::CanCounter(std::shared_ptr<Character> user)
 {
   // tfc window ended
-  if (summonTick > summonTextLength) return false;
+  // Uses same comparison as the display_name state for checking if the action
+  // should execute. If they were different, a counter could happen after 
+  // ExecuteTimeFreeze was already called, which leads to a softlock.
+  // With this, an actor cannot counter once the text has disappeared.
+  if (summonTick >= summonTextLength) return false;
 
   // bool addEvent = true;
 
