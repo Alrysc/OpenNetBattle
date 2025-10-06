@@ -192,7 +192,7 @@ void MobBattleScene::OnHit(Entity& victim, const Hit::Properties& props)
       GetSelectedCardsUI().SetMultiplier(2);
     }
 
-    if (player->IsSuperEffective(props.element)) {
+    if (player->IsInForm() && player->IsSuperEffective(props.element)) {
       playerDecross = true;
     }
   }

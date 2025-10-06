@@ -243,7 +243,7 @@ void NetworkBattleScene::OnHit(Entity& victim, const Hit::Properties& props) {
       }
     }
 
-    if (player->IsSuperEffective(props.element)) {
+    if (player->IsInForm() && player->IsSuperEffective(props.element)) {
       // animate the transformation back to default form
       TrackedFormData& formData = GetPlayerFormData(player);
 
@@ -252,6 +252,8 @@ void NetworkBattleScene::OnHit(Entity& victim, const Hit::Properties& props) {
         formData.selectedForm = -1;
       }
 
+      // TODO: Do we set this flag even if we weren't in a form?
+      // Get hit by weakness, then transform.
       if (player == GetLocalPlayer()) {
         // Local player needs to update their form selections in the card gui
         cardStatePtr->ResetSelectedForm();
