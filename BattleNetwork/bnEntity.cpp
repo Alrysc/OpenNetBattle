@@ -238,7 +238,7 @@ void Entity::Init() {
   hasInit = true;
 }
 
-void Entity::HandleNewStatuses(const Hit::Flags prevStatuses, const Hit::Flags appliedStatuses) {
+void Entity::HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags& appliedStatuses) {
 
   // Some statuses clear the action queue.
   // TODO: Neither FinishMove nor clearing the queue ends the animation initiated 
@@ -252,6 +252,8 @@ void Entity::HandleNewStatuses(const Hit::Flags prevStatuses, const Hit::Flags a
 
   if ((appliedStatuses & Hit::freeze) == Hit::freeze) {
     IceFreeze();
+    // IceFreeze removes flash
+    appliedStatuses &= ~Hit::flash;
   }
 
 
@@ -318,7 +320,8 @@ void Entity::Update(double _elapsed) {
   // Tick all statuses at once
   statuses.OnUpdate(_elapsed);
 
-  HandleNewStatuses(prevStatuses, queuedStatuses & ~statuses.GetQueuedStatuses() & statuses.GetCurrentStatuses());
+  Hit::Flags applied = (queuedStatuses & ~statuses.GetQueuedStatuses() & statuses.GetCurrentStatuses());
+  HandleNewStatuses(prevStatuses, applied);
 
   RefreshShader();
 
@@ -706,7 +709,9 @@ void Entity::HandleMoveEvent(MoveEvent& event, const ActionQueue::ExecutionType&
     return;
   }
 
-  if (!currMoveEvent && !IsRooted()) {
+  // TODO: Hack. Root blocks Drag from being added, which means slideFromDrag is never set false
+  // if move was
+  if (!currMoveEvent && (!IsRooted() || dynamic_cast<DragAction*>(event.move.get()))) {
     UpdateMoveStartPosition();
     FilterMoveEvent(event);
     currMoveEvent = event.move;
@@ -1611,10 +1616,13 @@ void Entity::IceFreeze()
 
   static std::shared_ptr<sf::SoundBuffer> freezesfx = Audio().LoadFromFile(SoundPaths::ICE_FX);
   // Becoming frozen instantly ends flashing, which includes removing its passthrough effect.
-  // Removing stun here may be redundant with how the StatusBehaviorDirector filters 
-  // freeze and stun.
+  // Removing flash here is redundant only if IceFreeze was called because Hit::freeze was added 
+  // by the StatusBehaviorDirector. 
+  // This is considered a reaction to becoming frozen, based on the interaction where qeueuing 
+  // a freeze during timestop where a card activated some flashing effect results in the effect 
+  // being cancelled.
   SetPassthrough(false);
-  ClearStatuses(Hit::flash | Hit::stun);
+  ClearStatuses(Hit::flash);
   Audio().Play(freezesfx, AudioPriority::highest);
 
   if (height <= 48) {

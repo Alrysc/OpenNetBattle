@@ -89,7 +89,7 @@ void Player::RemoveSyncNode(std::shared_ptr<SyncNode> syncNode) {
 }
 
 
-void Player::HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags appliedStatuses) {
+void Player::HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags& appliedStatuses) {
   // Tracks whether or not charge has already been cancelled, to avoid repeats
   bool chargeCancel = false;
 
@@ -104,9 +104,16 @@ void Player::HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags applied
     chargeCancel = true;
   }
 
+  // Clear action queue if flinched, but not if Dragged, since Flinch is allowed 
+  // to process with Drag. If it was cleared during Drag, the Drag movement would 
+  // be incorrectly removed.
   if (appliedStatuses & Hit::flinch) {
-    ClearActionQueue();
-    Charge(false);
+    if (!(appliedStatuses & Hit::drag)) {
+      ClearActionQueue();
+    }
+    if (!chargeCancel) {
+      Charge(false);
+    }
 
     // At the end of flinch we need to be made idle if possible
     SetAnimation(recoilAnimHash, [this] { MakeIdle(); });

@@ -48,13 +48,15 @@ Hit::Flags StatusBehaviorDirector::GetAppliedFlags(Hit::Flags flags) {
 }
 
 void StatusBehaviorDirector::ProcessPendingStatuses() {
-  // Process only Drag if it's queued
+  // Process only Drag and Flinch if Drag is queued. 
   if ((queuedStatuses & Hit::drag) == Hit::drag) {
-    ProcessFlags(Hit::drag);
+    ProcessFlags(queuedStatuses & (Hit::drag | Hit::flinch));
+
     // Drag is a special case where most behavior is handled 
     // based on this bool. Set true after processing.
     owner.slideFromDrag = true;
-    queuedStatuses &= ~Hit::drag;
+
+    queuedStatuses &= ~(Hit::drag | Hit::flinch);
     return;
   }
 
@@ -81,33 +83,10 @@ void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
     currentStatuses &= ~Hit::flash;
   }
 
-  // Flinch|Flash cancels existing Freeze|Stun
-  if ((attack & flinch_flash) == flinch_flash) {
-    // If stun is already active, flinch | flash will prevent it from 
-    // being added by this attack. That also means a freeze could be
-    // committed.
-    if ((currentStatuses & Hit::stun) == Hit::stun) {
-      attack &= ~Hit::stun;
-    }
-
-    currentStatuses &= ~(Hit::freeze | Hit::stun);
-  }
-  // If attack did not have Flinch|Flash, some statuses are interested in 
-  // checking one of these flags.
-  else {
-    // If stunned is active, prevent flinch
-    /*
-      This should mean that an attack which ends stun and flinches will not flinch.
-      The only way for that to be the case when the attack doesn't also flash is 
-      with Drag | Flinch. TODO: Does an attack like that exist to test?
-    */
-    if (((currentStatuses & Hit::stun) == Hit::stun) && (attack & Hit::flinch)) {
-      attack &= ~Hit::flinch;
-    }
-  }
-
   // Drag cancels existing and queued Freeze
   // Additionally cancels current or queued Stun and Freeze if Player has Drag
+  // Does not take freeze out of the attack, since that will be handled by 
+  // GetAppliedFlags.
   if ((attack & Hit::drag) == Hit::drag) {
     currentStatuses &= ~Hit::freeze;
     // TODO: It would be more correct to handle this in GetAppliedFlags, and 
@@ -125,7 +104,40 @@ void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
     }
   }
 
+  // Flinch|Flash cancels existing Freeze|Stun
+  if ((attack & flinch_flash) == flinch_flash) {
+    // If stun is already active, flinch | flash will prevent it from 
+    // being added by this attack. That also means a freeze could be
+    // committed, which is correct. Removing Freeze and Stun after this 
+    // makes no difference in the end result if Freeze is finally 
+    // applied.
+    if ((currentStatuses & Hit::stun) == Hit::stun) {
+      attack &= ~Hit::stun;
+    }
+
+    currentStatuses &= ~(Hit::freeze | Hit::stun);
+  }
+  // If attack did not have Flinch|Flash, some statuses are interested in 
+  // checking one of these flags.
+  else {
+    // If stunned is active, prevent flinch.
+    // Note that this correctly does not happen if Drag removed the active 
+    // Hit::stun, as that check ran before this one.
+    if ((currentStatuses & Hit::stun) == Hit::stun) {
+      attack &= ~Hit::flinch;
+    }
+  }
+
   Hit::Flags toApply = GetAppliedFlags(attack);
+
+  // At this point, toApply & (Stun | Freeze) cannot be true, but one of these 
+  // flags can be present. If Freeze is there, remove active Stun, and vice versa.
+  if (toApply & Hit::stun) {
+    currentStatuses &= ~Hit::freeze;
+  } else if (toApply & Hit::freeze) {
+    currentStatuses &= ~Hit::stun;
+  }
+
   currentStatuses |= toApply;
 }
 
@@ -154,6 +166,9 @@ void StatusBehaviorDirector::OnUpdate(double elapsed) {
 
       To trigger status callbacks on hit, Hit::drag still passes through the 
       StatusBehaviorDirector, so tick it down and remove as with other statuses. 
+
+      Note that Flinch and Flash are allowed to process with Flinch, but do not 
+      count down here. Flinch's remaining time is inconsequential to the Entity.
     */
     
     drag.remainingTime -= _elapsed;

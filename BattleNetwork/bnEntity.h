@@ -555,6 +555,8 @@ public:
     involves reactions specific to the Entity, such as Hit::freeze playing 
     a sound effect, as well as running all appropriate status callbacks.
 
+    Some reactions may remove statuses in [appliedStatuses].
+
     This does not include behavior related to ongoing statuses, such as 
     animating blindFx.
 
@@ -565,7 +567,7 @@ public:
     included Hit::stun, and Hit::stun passed all filtering, its bit would be 
     set)
   */
-  virtual void HandleNewStatuses(const Hit::Flags prevStatuses, const Hit::Flags appliedStatuses);
+  virtual void HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags& appliedStatuses);
 
   /**
    * @brief Get the character's current health
