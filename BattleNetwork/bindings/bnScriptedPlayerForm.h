@@ -22,7 +22,7 @@ private:
   frame_time_t CalculateChargeTime(unsigned chargeLevel) override;
 
   std::weak_ptr<ScriptedPlayer> playerWeak;
-  sol::object calculate_charge_time_func;
+  sol::object charge_time_func;
   sol::object on_activate_func;
   sol::object on_deactivate_func;
   sol::object update_func;
@@ -37,7 +37,7 @@ public:
   PlayerForm* BuildForm() override;
 
   std::weak_ptr<ScriptedPlayer> playerWeak;
-  sol::object calculate_charge_time_func;
+  sol::object charge_time_func;
   sol::object on_activate_func;
   sol::object on_deactivate_func;
   sol::object update_func;
