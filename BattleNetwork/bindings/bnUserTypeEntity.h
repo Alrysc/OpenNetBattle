@@ -372,6 +372,9 @@ void DefineEntityFunctionsOn(sol::basic_usertype<WeakWrapper<E>, sol::basic_refe
   entity_table["is_blind"] = [](WeakWrapper<E>& entity) -> bool {
     return entity.Unwrap()->IsBlind();
   };
+  entity_table["is_dragged"] = [](WeakWrapper<E>& entity) -> bool {
+    return entity.Unwrap()->HasStatus(Hit::drag);
+  };
 }
 
 #endif
