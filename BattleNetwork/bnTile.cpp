@@ -613,7 +613,7 @@ namespace Battle {
     }
 
     if (grassHealCooldown1 <= frames(0)) grassHealCooldown1 = frames(20);
-    if (grassHealCooldown2 <= frames(0)) grassHealCooldown1 = frames(180);
+    if (grassHealCooldown2 <= frames(0)) grassHealCooldown2 = frames(180);
   }
 
   void Tile::ToggleTimeFreeze(bool state)
@@ -774,11 +774,12 @@ namespace Battle {
       charElement == Element::wood
       && state == TileState::grass;
 
+    
     const bool heal = doGrassCheck &&
       (
-        (grassHealCooldown1 == frames(0) && health <= 9)
+        (grassHealCooldown1 == frames(0) && health > 9)
         ||
-        (grassHealCooldown2 == frames(0) && health > 9)
+        (grassHealCooldown2 == frames(0) && health <= 9)
       );
 
     if (heal) {
