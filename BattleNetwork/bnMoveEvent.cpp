@@ -284,9 +284,13 @@ void DragAction::PrepareFinalMove() {
     Otherwise, the total inactionable time is 27 frames if pushed one Tile, 31 if two, etc. 
     A move time of 23 achieves this, since each move is 4 frames.
 
-    Note that, because 
+    Endlag is used for this time. This means IsMoving/IsSliding will return false during this 
+    movement, which appropriately reflects visuals.
+
+    Note that, because of the timing of movement and slideFromDrag being set, these times 
+    cover for this.
   */
-  ResetWith(MoveData{ owner.GetTile(), frames(firstMove ? 26 : 23), frames(0), frames(0), 0.f, nullptr});
+  ResetWith(MoveData{ owner.GetTile(), frames(0), frames(0), frames(firstMove ? 26 : 23), 0.f, nullptr});
 }
 
 void DragAction::PrepareMovement() {
