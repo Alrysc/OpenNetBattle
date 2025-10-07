@@ -156,7 +156,7 @@ const bool Character::CanAttack() const
 }
 
 const bool Character::CanAttackImpl() const {
-  return !currCardAction && Character::blockingStatuses;
+  return !currCardAction && !HasAnyStatusFrom(Character::blockingStatuses);
 }
 
 void Character::MakeIdle()
