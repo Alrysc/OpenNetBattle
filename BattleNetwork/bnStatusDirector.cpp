@@ -25,8 +25,8 @@ Hit::Flags StatusBehaviorDirector::GetAppliedFlags(Hit::Flags flags) {
   Hit::Flags i = flags & -flags;
   Hit::Flags m = ~0;
 
-  static const Hit::Flags stunMask = ~(Hit::flinch | Hit::freeze);
-  static const Hit::Flags freezeMask = ~(Hit::flinch | Hit::flash);
+  static const Hit::Flags stunMask = ~(Hit::flinch | Hit::freeze | Hit::confuse);
+  static const Hit::Flags freezeMask = ~(Hit::flinch | Hit::flash | Hit::confuse);
 
   // NOTE: Flag order is important. stun < freeze < drag
   while (i != 0) {
@@ -136,6 +136,12 @@ void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
     currentStatuses &= ~Hit::freeze;
   } else if (toApply & Hit::freeze) {
     currentStatuses &= ~Hit::stun;
+  }
+
+  // If Confuse is still here after GetAppliedFlags, it must not have been filtered 
+  // off by Stun or Freeze. It will remove an active Stun or Freeze.
+  if (toApply & Hit::confuse) {
+    currentStatuses &= ~(Hit::stun | Hit::freeze);
   }
 
   currentStatuses |= toApply;

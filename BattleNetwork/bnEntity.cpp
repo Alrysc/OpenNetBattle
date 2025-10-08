@@ -75,8 +75,15 @@ Entity::Entity() :
   blindFx->Hide(); // default: hidden
   AddNode(blindFx);
 
+  confusedFx = std::make_shared<SpriteProxyNode>();
+  confusedFx->setTexture(Textures().LoadFromFile(TexturePaths::CONFUSED_FX));
+  confusedFx->SetLayer(-2);
+  confusedFx->Hide(); // default: hidden
+  AddNode(confusedFx);
+
   iceFxAnimation = Animation(AnimationPaths::ICE_FX);
   blindFxAnimation = Animation(AnimationPaths::BLIND_FX);
+  confusedFxAnimation = Animation(AnimationPaths::CONFUSED_FX);
 }
 
 Entity::~Entity() {
@@ -261,6 +268,10 @@ void Entity::HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags& applie
     Blind();
   }
 
+  if ((appliedStatuses & Hit::confuse) == Hit::confuse) {
+    Confuse();
+  }
+
   if ((appliedStatuses & Hit::retangible) == Hit::retangible) {
     SetPassthrough(false);
   }
@@ -328,6 +339,7 @@ void Entity::Update(double _elapsed) {
   bool stunned = statuses.IsApplied(Hit::stun);
   bool frozen = statuses.IsApplied(Hit::freeze);
   bool blind = statuses.IsApplied(Hit::blind);
+  bool confused = statuses.IsApplied(Hit::confuse);
 
   // TODO: Determine if Drag should also be checked here.
   // The answer is likely yes.
@@ -363,6 +375,24 @@ void Entity::Update(double _elapsed) {
   if (blind) {
     blindFxAnimation.Update(_elapsed, blindFx->getSprite());
     blindFx->Reveal();
+  }
+
+  // assume this is hidden, will flip to visible if not
+  confusedFx->Hide();
+  if (confused) {
+    confusedFxAnimation.Update(_elapsed, confusedFx->getSprite());
+    confusedFx->Reveal();
+    confuseSfxCooldown -= from_seconds(_elapsed);
+    // Unclear if 55f is the correct timing: this seems to be the one used in source, though, as the confusion SFX only plays twice during a 110f confusion period.
+    constexpr frame_time_t CONFUSED_SFX_INTERVAL{ 55 };
+    if (confuseSfxCooldown <= frames(0)) {
+      static std::shared_ptr<sf::SoundBuffer> confusedsfx = Audio().LoadFromFile(SoundPaths::CONFUSED_FX);
+      Audio().Play(confusedsfx, AudioPriority::highest);
+      confuseSfxCooldown = CONFUSED_SFX_INTERVAL;
+    }
+  }
+  else {
+    confuseSfxCooldown = frames(0);
   }
   
   if(canUpdateThisFrame) {
@@ -1180,7 +1210,7 @@ const bool Entity::Hit(Hit::Properties props) {
 
   const Hit::Properties original = props;
 
-  // If in time freeze, shake immediate on any contact
+  // If in time freeze, shake immediately on any contact
   if ((props.flags & Hit::shake) == Hit::shake && IsTimeFrozen()) {
     CreateComponent<ShakingEffect>(weak_from_this());
   }
@@ -1370,35 +1400,41 @@ void Entity::ResolveFrameBattleDamage()
 
       props.filtered.flags = props.filtered.flags & ~Hit::flash;
 
-      if ((props.filtered.flags & Hit::freeze) == Hit::freeze) {
+      if ((props.filtered.flags & Hit::freeze)) {
         statuses.AddStatus(Hit::freeze, frames(150));
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::freeze;
 
-      if ((props.filtered.flags & Hit::stun) == Hit::stun) {
+      if ((props.filtered.flags & Hit::stun)) {
         statuses.AddStatus(Hit::stun, frames(120));
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::stun;
 
-      if ((props.filtered.flags & Hit::bubble) == Hit::bubble) {
+      if ((props.filtered.flags & Hit::bubble)) {
         statuses.AddStatus(Hit::bubble, frames(150));
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::bubble;
 
-      if ((props.filtered.flags & Hit::root) == Hit::root) {
+      if ((props.filtered.flags & Hit::root)) {
         statuses.AddStatus(Hit::root, frames(120));
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::root;
 
-      if ((props.filtered.flags & Hit::blind) == Hit::blind) {
+      if ((props.filtered.flags & Hit::blind)) {
         statuses.AddStatus(Hit::blind, frames(300));
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::blind;
+
+      if ((props.filtered.flags & Hit::confuse)) {
+        statuses.AddStatus(Hit::confuse, frames(110));
+      }
+
+      props.filtered.flags = props.filtered.flags & ~Hit::confuse;
 
       // Add the rest, starting from lowest set bit
       Hit::Flags curFlag = props.filtered.flags & -props.filtered.flags;
@@ -1653,6 +1689,21 @@ void Entity::Blind()
   blindFx->setPosition(0, height);
   blindFxAnimation << "default" << Animator::Mode::Loop;
   blindFxAnimation.Refresh(blindFx->getSprite());
+}
+
+void Entity::Confuse() {
+  constexpr float OFFSET_Y = 10.f;
+
+  float height = -GetHeight() - OFFSET_Y;
+  std::shared_ptr<AnimationComponent> anim = GetFirstComponent<AnimationComponent>();
+
+  if (anim && anim->HasPoint("head")) {
+    height = (anim->GetPoint("head") - anim->GetPoint("origin")).y - OFFSET_Y;
+  }
+
+  confusedFx->setPosition(0, height);
+  confusedFxAnimation << "default" << Animator::Mode::Loop;
+  confusedFxAnimation.Refresh(confusedFx->getSprite());
 }
 
 bool Entity::IsCountered()

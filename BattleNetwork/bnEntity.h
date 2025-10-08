@@ -119,7 +119,8 @@ private:
   std::shared_ptr<SpriteProxyNode> shadow{ nullptr };
   std::shared_ptr<SpriteProxyNode> iceFx{ nullptr };
   std::shared_ptr<SpriteProxyNode> blindFx{ nullptr };
-  Animation iceFxAnimation, blindFxAnimation;
+  std::shared_ptr<SpriteProxyNode> confusedFx{ nullptr };
+  Animation iceFxAnimation, blindFxAnimation, confusedFxAnimation;
   /**
    * @brief Frees one component with the same ID
    * @param ID ID of the component to remove
@@ -829,7 +830,6 @@ protected:
   ActionQueue actionQueue;
   frame_time_t moveStartupDelay{};
   std::optional<frame_time_t> moveEndlagDelay;
-  frame_time_t grassHealCooldown{ 0 }; /*!< Timer until next healing is allowed */
   StatusBehaviorDirector statuses;
   
   bool counterable{};
@@ -854,20 +854,24 @@ protected:
   const int GetMoveCount() const; /*!< Total intended movements made. Used to calculate rank*/
 
   /**
-  * @brief Stop a character from moving for maxCooldown seconds
-  * @param maxCooldown
+  * @brief Handle setup for freeze graphics and SFX
   * Used internally by class
   *
   */
   void IceFreeze();
 
   /**
-  * @brief This entity should not see opponents for maxCooldown seconds
-  * @param maxCooldown
+  * @brief Handle setup for blind graphics
   * Used internally by class
   *
   */
   void Blind();
+
+  /*
+  * @brief Handle setup for confuse graphics
+  * Used internally by class
+  */
+  void Confuse();
 
   /**
   * @brief Query if an attack successfully countered a Character
@@ -938,6 +942,7 @@ private:
   std::string name; /*!< Name of the entity */
   // Controls shader active timing for statuses. Increments every Update and will overflow.
   uint8_t statusShaderTimer{ 0 };
+  frame_time_t confuseSfxCooldown{};
 
   std::queue<CombatHitProps> statusQueue;
 

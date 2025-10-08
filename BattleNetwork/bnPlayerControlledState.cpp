@@ -122,6 +122,10 @@ void PlayerControlledState::OnUpdate(double _elapsed, Player& player) {
     direction = player.GetTeam() == Team::red ? Direction::right : Direction::left;
   }
 
+  if (player.HasStatus(Hit::confuse)) {
+    direction = Reverse(direction);
+  }
+
   if(direction != Direction::none && isIdle && !player.IsRooted()) {
     Battle::Tile* next_tile = player.GetTile() + direction;
     std::shared_ptr<AnimationComponent> anim = player.GetFirstComponent<AnimationComponent>();
