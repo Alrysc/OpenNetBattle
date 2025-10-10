@@ -511,6 +511,11 @@ void ScriptResourceManager::ConfigureEnvironment(ScriptPackage& scriptPackage) {
     }
   );
 
+  battle_namespace.set_function("get_turn_count",
+    [this] {
+    return std::atof(keys["turn_count"].c_str());
+  });
+
   battle_namespace.set_function("get_cust_gauge_value",
     [this] {
     return std::atof(keys["cust_gauge_value"].c_str());

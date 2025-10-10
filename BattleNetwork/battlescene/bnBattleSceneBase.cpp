@@ -175,6 +175,7 @@ BattleSceneBase::BattleSceneBase(ActivityController& controller, BattleSceneBase
 
   Scripts().SetKeyValue("cust_gauge_default_max_time", std::to_string(customDefaultDuration.count()));
   channel.Emit(&ScriptResourceManager::SetKeyValue, "cust_gauge_max_time", std::to_string(customDuration.count()));
+  channel.Emit(&ScriptResourceManager::SetKeyValue, "turn_count", std::to_string(turn));
 }
 
 BattleSceneBase::~BattleSceneBase() {
@@ -1278,6 +1279,7 @@ void BattleSceneBase::BroadcastBattleStop()
 void BattleSceneBase::IncrementTurnCount()
 {
   turn++;
+  channel.Emit(&ScriptResourceManager::SetKeyValue, "turn_count", std::to_string(turn));
 }
 
 void BattleSceneBase::IncrementRoundCount()
