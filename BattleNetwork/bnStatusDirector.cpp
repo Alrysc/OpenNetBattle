@@ -123,6 +123,9 @@ void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
     // If stunned is active, prevent flinch.
     // Note that this correctly does not happen if Drag removed the active 
     // Hit::stun, as that check ran before this one.
+    //
+    // This correctly implies that an attack that confuses and flinches, but does 
+    // not flash, will cancel stun and still will not flinch. 
     if ((currentStatuses & Hit::stun) == Hit::stun) {
       attack &= ~Hit::flinch;
     }
@@ -130,12 +133,13 @@ void StatusBehaviorDirector::ProcessFlags(Hit::Flags attack) {
 
   Hit::Flags toApply = GetAppliedFlags(attack);
 
-  // At this point, toApply & (Stun | Freeze) cannot be true, but one of these 
-  // flags can be present. If Freeze is there, remove active Stun, and vice versa.
+  // At this point, toApply can have Stun OR Freeze, but not both.
+  // If Freeze is there, remove active Stun, and vice versa.
+  // Both remove active Confuse.
   if (toApply & Hit::stun) {
-    currentStatuses &= ~Hit::freeze;
+    currentStatuses &= ~(Hit::freeze | Hit::confuse);
   } else if (toApply & Hit::freeze) {
-    currentStatuses &= ~Hit::stun;
+    currentStatuses &= ~(Hit::stun | Hit::confuse);
   }
 
   // If Confuse is still here after GetAppliedFlags, it must not have been filtered 
