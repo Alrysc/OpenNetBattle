@@ -161,8 +161,7 @@ void CombatBattleState::onUpdate(double elapsed)
   }
 
   if (isPaused) return; // do not update anything else
-
-  scene.SetCustomBarProgress(scene.GetCustomBarProgress() + elapsed);
+  scene.SetCustomBarProgress(scene.GetCustomBarProgress() + from_seconds(elapsed));
 
   // Update the field. This includes the player.
   // After this function, the player may have used a card.

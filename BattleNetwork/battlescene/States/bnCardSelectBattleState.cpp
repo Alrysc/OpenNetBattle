@@ -69,7 +69,7 @@ void CardSelectBattleState::onStart(const BattleSceneState*)
   Audio().Play(AudioType::CUSTOM_SCREEN_OPEN);
 
   // Reset bar and related flags
-  scene.SetCustomBarProgress(0.0);
+  scene.SetCustomBarProgress(frames(0));
 
   // Load the next cards
   cardCust.ResetState();

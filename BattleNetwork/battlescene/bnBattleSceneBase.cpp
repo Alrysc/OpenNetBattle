@@ -44,8 +44,9 @@ BattleSceneBase::BattleSceneBase(ActivityController& controller, BattleSceneBase
   comboDeleteCounter(0),
   totalCounterMoves(0),
   totalCounterDeletions(0),
-  customProgress(0),
-  customDuration(10),
+  customProgress(frames(0)),
+  customDuration(frames(512)),
+  customDefaultDuration(frames(512)),
   whiteShader(Shaders().GetShader(ShaderType::WHITE_FADE)),
   backdropShader(Shaders().GetShader(ShaderType::BLACK_FADE)),
   yellowShader(Shaders().GetShader(ShaderType::YELLOW)),
@@ -166,13 +167,21 @@ BattleSceneBase::BattleSceneBase(ActivityController& controller, BattleSceneBase
 
   setView(sf::Vector2u(480, 320));
 
-  // add the camera to our event bus
-  channel.Register(&camera);
+  // Camera and scripts can be triggered by scene events
+  channel.Register(&camera, &Scripts(), this);
+
+  // create bi-directional communication
+  Scripts().SetEventChannel(channel);
+
+  Scripts().SetKeyValue("cust_gauge_default_max_time", std::to_string(customDefaultDuration.count()));
+  channel.Emit(&ScriptResourceManager::SetKeyValue, "cust_gauge_max_time", std::to_string(customDuration.count()));
 }
 
 BattleSceneBase::~BattleSceneBase() {
-  // drop the camera from our event bus
-  channel.Drop(&camera);
+  // drop the registered items from the bus
+  channel.Drop(&camera, &Scripts(), this);
+
+  Scripts().DropEventChannel();
 
   for (BattleSceneState* statePtr : states) {
     delete statePtr;
@@ -305,12 +314,12 @@ void BattleSceneBase::HighlightTiles(bool enable)
   this->highlightTiles = enable;
 }
 
-const double BattleSceneBase::GetCustomBarProgress() const
+const frame_time_t BattleSceneBase::GetCustomBarProgress() const
 {
   return this->customProgress;
 }
 
-const double BattleSceneBase::GetCustomBarDuration() const
+const frame_time_t BattleSceneBase::GetCustomBarDuration() const
 {
   return this->customDuration;
 }
@@ -320,7 +329,7 @@ const bool BattleSceneBase::IsCustGaugeFull() const
   return isGaugeFull;
 }
 
-void BattleSceneBase::SetCustomBarProgress(double value)
+void BattleSceneBase::SetCustomBarProgress(frame_time_t value)
 {
   this->customProgress = value;
 
@@ -328,14 +337,36 @@ void BattleSceneBase::SetCustomBarProgress(double value)
     isGaugeFull = false;
   }
 
+  float percentage = (float)customProgress.count() / (float)customDuration.count();
+
   if (customBarShader) {
-    customBarShader->setUniform("factor", std::min(1.0f, (float)(customProgress/customDuration)));
+    customBarShader->setUniform("factor", std::min(1.0f, percentage));
   }
+
+  if (percentage >= 1.0) {
+    percentage = 0.0;
+  }
+
+  channel.Emit(&ScriptResourceManager::SetKeyValue, "cust_gauge_time", std::to_string(customProgress.count()));
+  channel.Emit(&ScriptResourceManager::SetKeyValue, "cust_gauge_value", std::to_string(percentage));
 }
 
-void BattleSceneBase::SetCustomBarDuration(double maxTimeSeconds)
+void BattleSceneBase::SetCustomBarDuration(frame_time_t maxTimeFrames)
 {
-  this->customDuration = maxTimeSeconds;
+  const float percentage = (float)customProgress.count() / (float)customDuration.count();
+
+  customDuration = std::max(frames(1), maxTimeFrames);
+
+  // Recalculate progress so that percentage stays the same.
+  const frame_time_t newProgress = from_seconds(customDuration.asSeconds().value * percentage);
+
+  // Update progress and percentage, which may be slightly different now
+  SetCustomBarProgress(newProgress);
+  channel.Emit(&ScriptResourceManager::SetKeyValue, "cust_gauge_max_time", std::to_string(maxTimeFrames.count()));
+}
+
+void BattleSceneBase::ResetCustomBarDuration() {
+  SetCustomBarDuration(customDefaultDuration);
 }
 
 void BattleSceneBase::SubscribeToCardActions(CardActionUsePublisher& publisher)
@@ -419,6 +450,9 @@ sf::Vector2f BattleSceneBase::PerspectiveOrigin(const sf::Vector2f& origin, cons
 void BattleSceneBase::SpawnLocalPlayer(int x, int y)
 {
   if (hasPlayerSpawned) return;
+
+  localPlayerSpawnIndex = otherPlayers.size();
+
   hasPlayerSpawned = true;
   Team team = field->GetAt(x, y)->GetTeam();
 
@@ -731,7 +765,7 @@ void BattleSceneBase::onUpdate(double elapsed) {
 
   current->onUpdate(elapsed);
 
-  if (customProgress / customDuration >= 1.0 && !isGaugeFull) {
+  if ((float)customProgress.count() / (float)customDuration.count() >= 1.0 && !isGaugeFull) {
     isGaugeFull = true;
     Audio().Play(AudioType::CUSTOM_BAR_FULL);
   }
@@ -843,7 +877,7 @@ void BattleSceneBase::onUpdate(double elapsed) {
 
   // custom bar continues to animate when it is already full
   if (isGaugeFull) {
-    customFullAnimDelta += elapsed/customDuration;
+    customFullAnimDelta += elapsed / customDuration.asSeconds().value;
     customBarShader->setUniform("factor", (float)(1.0 + customFullAnimDelta));
   }
 
@@ -1146,7 +1180,7 @@ std::vector<std::shared_ptr<Player>> BattleSceneBase::GetOtherPlayers()
 std::vector<std::shared_ptr<Player>> BattleSceneBase::GetAllPlayers()
 {
   std::vector<std::shared_ptr<Player>> result = otherPlayers;
-  result.insert(result.begin(), localPlayer);
+  result.insert(result.begin() + localPlayerSpawnIndex, localPlayer);
   return result;
 }
 

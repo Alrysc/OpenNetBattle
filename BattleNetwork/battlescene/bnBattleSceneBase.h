@@ -102,8 +102,9 @@ private:
   int newRedTeamMobSize{ 0 }, newBlueTeamMobSize{ 0 };
   frame_time_t frameNumber{ 0 };
   double elapsed{ 0 }; /*!< total time elapsed in battle */
-  double customProgress{ 0 }; /*!< Cust bar progress in seconds */
-  double customDuration{ 10.0 }; /*!< Cust bar max time in seconds */
+  frame_time_t customProgress{}; /*!< Cust bar progress in seconds */
+  frame_time_t customDuration{}; /*!< Cust bar max time in seconds */
+  frame_time_t customDefaultDuration{}; /*!< Default value */
   double customFullAnimDelta{ 0 }; /*!< For animating a complete cust bar*/
   double backdropOpacity{ 1.0 };
   double backdropFadeIncrements{ 125 }; /*!< x/255 per tick */
@@ -119,6 +120,7 @@ private:
   std::shared_ptr<Player> localPlayer; /*!< Local player */
   std::vector<Entity::ID_t> deletingRedMobs, deletingBlueMobs; /*!< mobs untrack enemies but we need to know when they fully finish deleting*/
   std::vector<std::shared_ptr<Player>> otherPlayers; /*!< Player array supports multiplayer */
+  size_t localPlayerSpawnIndex{}; /*!< The index in the `otherPlayers` hash to respect spawn order relative to the local player*/
   std::map<Player*, TrackedFormData> allPlayerFormsHash;
   std::map<Player*, Team> allPlayerTeamHash; /*!< Check previous frames teams for traitors */
   Mob* redTeamMob{ nullptr }; /*!< Mob and mob data opposing team are fighting against */
@@ -310,11 +312,12 @@ public:
   void HandleCounterLoss(Entity& subject, bool playsound);
   void HighlightTiles(bool enable);
 
-  const double GetCustomBarProgress() const;
-  const double GetCustomBarDuration() const;
-  void SetCustomBarProgress(double value);
-  void SetCustomBarDuration(double maxTimeSeconds);
+  const frame_time_t GetCustomBarProgress() const;
+  const frame_time_t GetCustomBarDuration() const;
+  void SetCustomBarProgress(frame_time_t value);
+  void SetCustomBarDuration(frame_time_t maxTimeFrames);
 
+  void ResetCustomBarDuration();
   void DrawCustGauage(sf::RenderTexture& surface);
   void SubscribeToCardActions(CardActionUsePublisher& publisher);
   const std::vector<std::reference_wrapper<CardActionUsePublisher>>& GetCardActionSubscriptions() const;
