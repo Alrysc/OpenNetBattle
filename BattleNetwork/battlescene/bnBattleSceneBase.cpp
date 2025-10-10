@@ -877,7 +877,7 @@ void BattleSceneBase::onUpdate(double elapsed) {
 
   // custom bar continues to animate when it is already full
   if (isGaugeFull) {
-    customFullAnimDelta += elapsed / customDuration.asSeconds().value;
+    customFullAnimDelta += elapsed / customDefaultDuration.asSeconds().value;
     customBarShader->setUniform("factor", (float)(1.0 + customFullAnimDelta));
   }
 
