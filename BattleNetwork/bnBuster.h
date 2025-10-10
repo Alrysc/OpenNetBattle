@@ -15,7 +15,7 @@ public:
   /**
    * @brief If _charged is true, deals 10 damage
    */
-  Buster(Team _team,bool _charged, int damage);
+  Buster(Team _team,bool _charged, int damage, EntityID_t aggressorId);
   ~Buster() override;
 
   void Init() override;

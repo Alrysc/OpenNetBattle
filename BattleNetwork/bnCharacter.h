@@ -49,6 +49,8 @@ private:
   std::shared_ptr<CardAction> currCardAction{ nullptr };
   frame_time_t cardActionStartDelay{0};
 public:
+  // Flags which should should block actions for Characters
+  static const Hit::Flags blockingStatuses = Hit::stun | Hit::freeze | Hit::bubble | Hit::drag;
 
   /**
    * @class Rank
@@ -72,8 +74,8 @@ public:
 
   virtual void OnBattleStop() override;
 
-  virtual void MakeActionable();
-  virtual bool IsActionable() const;
+  virtual void MakeIdle();
+  virtual bool IsIdle() const;
 
   const bool IsLockoutAnimationComplete();
 
@@ -89,6 +91,16 @@ public:
   */
   virtual bool CanMoveTo(Battle::Tile* next) override;
 
+  /**
+  * @brief Whether or not characters are allowed to begin a new action, as 
+  * determined by CanAttackImpl and actionBlocked.
+  *
+  * Currently does not indicate that the Character actually can act, but 
+  * expect that some behavior is delayed or skipped while this returns false.
+  *
+  * @return false if character is unable to act based on CanAttackImpl, or if 
+  * CanAttackImpl returned false during the previous Update. Otherwise, true.
+  */
   const bool CanAttack() const;
 
   /**
@@ -104,4 +116,24 @@ public:
 
 protected:
   Character::Rank rank;
+  /* 
+    Cached result of CanAttackImpl. Part of what determines whether or not 
+    characters are free to act.
+    
+    This exists in order to enforce the idea that characters cannot act on 
+    the frame that they visibly become actionable, for example on the frame 
+    a CardAction ends or the frame stun ends. 
+
+    Set true based on a call to CanAttackImpl done at the end of Update.
+    Also set true by MakeActionable.
+  */ 
+  bool actionBlocked = false;
+
+  /**
+    @brief Called by CanAttack as part of the determination of whether or not 
+    characters are free to act.
+    @returns true if the Character can act, otherwise false
+  */
+  virtual const bool CanAttackImpl() const;
+
 };

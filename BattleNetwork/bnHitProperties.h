@@ -10,11 +10,11 @@ namespace Hit {
 
   const Flags none       = 0x00000000;
   const Flags retangible = 0x00000001;
-  const Flags freeze     = 0x00000002;
+  const Flags stun       = 0x00000002;
   const Flags pierce     = 0x00000004;
   const Flags flinch     = 0x00000008;
   const Flags shake      = 0x00000010;
-  const Flags stun       = 0x00000020;
+  const Flags freeze     = 0x00000020;
   const Flags flash      = 0x00000040;
   const Flags breaking   = 0x00000080; // NOTE: this is what we refer to as "true breaking"
   const Flags impact     = 0x00000100;
@@ -23,6 +23,7 @@ namespace Hit {
   const Flags no_counter = 0x00000800;
   const Flags root       = 0x00001000;
   const Flags blind      = 0x00002000;
+  const Flags confuse    = 0x00004000;
 
   struct Drag {
     Direction dir{ Direction::none };
@@ -52,11 +53,11 @@ namespace Hit {
     Context context{};
   };
 
-  const constexpr Hit::Properties DefaultProperties = { 
-    0, 
-    Flags(Hit::flinch | Hit::impact), 
-    Element::none, 
-    0, 
+  const constexpr Hit::Properties DefaultProperties = {
+    0,
+    Flags(Hit::flinch | Hit::impact),
+    Element::none,
+    0,
     Direction::none,
     true
   };

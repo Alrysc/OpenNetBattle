@@ -557,9 +557,9 @@ void ScriptResourceManager::ConfigureEnvironment(ScriptPackage& scriptPackage) {
     "Down", InputEvents::held_move_down,
     "Use", InputEvents::held_use_chip,
     "Special", InputEvents::held_special,
-    "Shoot", InputEvents::pressed_shoot,
-    "Left_Shoulder", InputEvents::pressed_shoulder_left,
-    "Right_Shoulder", InputEvents::pressed_shoulder_right
+    "Shoot", InputEvents::held_shoot,
+    "Left_Shoulder", InputEvents::held_shoulder_left,
+    "Right_Shoulder", InputEvents::held_shoulder_right
   );
 
   input_event_record.new_enum("Released",
@@ -569,9 +569,9 @@ void ScriptResourceManager::ConfigureEnvironment(ScriptPackage& scriptPackage) {
     "Down", InputEvents::released_move_down,
     "Use", InputEvents::released_use_chip,
     "Special", InputEvents::released_special,
-    "Shoot", InputEvents::pressed_shoot,
-    "Left_Shoulder", InputEvents::pressed_shoulder_left,
-    "Right_Shoulder", InputEvents::pressed_shoulder_right
+    "Shoot", InputEvents::released_shoot,
+    "Left_Shoulder", InputEvents::released_shoulder_left,
+    "Right_Shoulder", InputEvents::released_shoulder_right
   );
 
   const auto& character_rank_record = state.new_enum("Rank",
@@ -655,17 +655,20 @@ void ScriptResourceManager::ConfigureEnvironment(ScriptPackage& scriptPackage) {
     "Yellow", PlayerCustScene::Piece::Types::yellow
   );
 
-  const auto& move_event_record = state.new_usertype<MoveEvent>("MoveEvent",
+  // "MoveEvent", as Lua knows it, was renamed to "MoveData".
+  // Lua does not have access to the new MoveEvent, so it can continue to 
+  // use the old name to avoid breaking scripts from v2.0.
+  const auto& move_event_record = state.new_usertype<MoveData>("MoveEvent",
     sol::factories([] {
-      return MoveEvent{};
+      return MoveData{};
     }),
-    "delta_frames", &MoveEvent::deltaFrames,
-    "delay_frames", &MoveEvent::delayFrames,
-    "endlag_frames",&MoveEvent::endlagFrames,
-    "height", &MoveEvent::height,
-    "dest_tile", &MoveEvent::dest,
+    "delta_frames", &MoveData::deltaFrames,
+    "delay_frames", &MoveData::delayFrames,
+    "endlag_frames",&MoveData::endlagFrames,
+    "height", &MoveData::height,
+    "dest_tile", &MoveData::dest,
     "on_begin_func", sol::property(
-      [](MoveEvent& event, sol::object onBeginObject) {
+      [](MoveData& event, sol::object onBeginObject) {
         ExpectLuaFunction(onBeginObject);
 
         event.onBegin = [onBeginObject] {

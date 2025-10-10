@@ -22,6 +22,33 @@ const bool CharacterTransformBattleState::FadeOutBackdrop()
   return GetScene().FadeOutBackdrop(backdropInc);
 }
 
+/*
+  When changing form the following needs to be done:
+  * Finish movement and end current Drag (both done by Entity::EndDrag) 
+    - TODO: Drag may not end sometimes on deform. Determine how this works.
+  * Clear ActionQueue (done in Player::ActivateFormAt)
+  * (If activating form) Clear blocking statuses (done in Player::ActivateFormAt)
+    - This must be done after a call to ResolveFrameBattleDamage, also done in 
+      Player::ActivateFormAt
+  * TODO: Hide freezeFx
+    - This is not important for functionality
+  * Wait for whiteout
+  * Make idle (done in Player::ActivateFormAt)
+
+  Player::ActivateFormAt is called when whiteout begins. 
+
+  The whiteout is reached much sooner when activating a form.
+  However, because ONB currently has no actual transform animation beyond 
+  the shine graphic, there is not much difference. In the future, this 
+  function may need to include more animating. 
+
+  After transformations finish, supposing there are no blocking statuses 
+  still active, the Player should be completely actionable once the 
+  combat state begins again, no matter their previous state. This is in 
+  contrast to the ordinary behavior of guaranteeing one frame between 
+  being inactionable and being actionable again. See Character::CanAttack.
+  This special exception is handled in Player::ActivateFormAt.
+*/
 void CharacterTransformBattleState::UpdateAnimation(double elapsed)
 {
   bool allCompleted = true;
@@ -45,9 +72,14 @@ void CharacterTransformBattleState::UpdateAnimation(double elapsed)
 
     auto onTransform = [=]
     () {
-      // The next form has a switch based on health
-      // This way dying will cancel the form
-      player->ClearActionQueue();
+      player->EndDrag();
+      /*
+        Reset draw position after ending movement. This does not happen 
+        during FinishMove (called by EndDrag) if IsSliding is true, so it's 
+        done here to ensure it happens.
+      */ 
+      player->setPosition(player->GetTile()->getPosition() + player->GetDrawOffset());
+
       player->ActivateFormAt(_index);
       player->SetColorMode(ColorMode::additive);
       player->setColor(NoopCompositeColor(ColorMode::additive));
@@ -60,8 +92,6 @@ void CharacterTransformBattleState::UpdateAnimation(double elapsed)
         Audio().Play(AudioType::DEFORM);
       }
       else {
-        player->MakeActionable();
-
         if (player == GetScene().GetLocalPlayer()) {
           // only client player should remove their index information (e.g. PVP battles)
           auto& widget = GetScene().GetCardSelectWidget();

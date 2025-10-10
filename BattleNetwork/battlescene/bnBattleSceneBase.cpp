@@ -212,23 +212,22 @@ const bool BattleSceneBase::IsQuitting() const
 
 void BattleSceneBase::OnCounter(Entity& victim, Entity& aggressor)
 {
+  didCounterHit = true; // This flag allows the counter to display
+  comboInfoTimer.reset(); // reset display timer
+  Audio().Play(AudioType::COUNTER, AudioPriority::highest);
+
+  victim.ToggleCounter(false); // disable counter frame for the victim
+  
   for (std::shared_ptr<Player> p : GetAllPlayers()) {
     if (&aggressor != p.get()) continue;
 
     if (p == localPlayer) {
-      didCounterHit = true; // This flag allows the counter to display
-      comboInfoTimer.reset(); // reset display timer
       totalCounterMoves++;
 
       if (victim.IsDeleted()) {
         totalCounterDeletions++;
       }
     }
-
-    Audio().Play(AudioType::COUNTER, AudioPriority::highest);
-
-    victim.ToggleCounter(false); // disable counter frame for the victim
-    victim.Stun(frames(150));
 
     PreparePlayerFullSynchro(p);
   }
@@ -511,16 +510,30 @@ void BattleSceneBase::LoadBlueTeamMob(Mob& mob)
 
 void BattleSceneBase::HandleCounterLoss(Entity& subject, bool playsound)
 {
-  if (&subject == localPlayer.get()) {
-    if (field->DoesRevealCounterFrames()) {
-      localPlayer->RemoveNode(counterReveal);
-      localPlayer->RemoveDefenseRule(counterCombatRule);
-      localPlayer->SetEmotion(Emotion::normal);
-      field->RevealCounterFrames(false);
+  std::shared_ptr<PlayerSelectedCardsUI> cardUI = subject.GetFirstComponent<PlayerSelectedCardsUI>();
 
-      playsound ? Audio().Play(AudioType::COUNTER_BONUS, AudioPriority::highest) : 0;
-    }
-    cardUI->SetMultiplier(1);
+  // No multipler to remove
+  if (!cardUI) {
+    return;
+  }
+
+  std::shared_ptr<Player> p = cardUI->GetOwnerAs<Player>();
+
+  // p should never be nullptr. Sanity check.
+  // There's nothing to do if the Player isn't in the correct emotion.
+  if (!p || p->GetEmotion() != Emotion::full_synchro) {
+    return;
+  }
+
+  p->RemoveNode(counterReveal);
+  p->RemoveDefenseRule(counterCombatRule);
+  p->SetEmotion(Emotion::normal);
+  cardUI->SetMultiplier(1);
+
+  playsound ? Audio().Play(AudioType::COUNTER_BONUS, AudioPriority::highest) : 0;
+
+  if (&subject == localPlayer.get() && field->DoesRevealCounterFrames()) {
+    field->RevealCounterFrames(false);
   }
 }
 

@@ -613,7 +613,7 @@ namespace Battle {
     }
 
     if (grassHealCooldown1 <= frames(0)) grassHealCooldown1 = frames(20);
-    if (grassHealCooldown2 <= frames(0)) grassHealCooldown1 = frames(180);
+    if (grassHealCooldown2 <= frames(0)) grassHealCooldown2 = frames(180);
   }
 
   void Tile::ToggleTimeFreeze(bool state)
@@ -686,8 +686,7 @@ namespace Battle {
         if (obst.WillSlideOnTiles()) {
           if (!obst.HasAirShoe() && !obst.HasFloatShoe()) {
             if (!obst.IsSliding() && notMoving) {
-              MoveEvent event{ frames(3), frames(0), frames(0), 0, obst.GetTile() + directional };
-              obst.Entity::RawMoveEvent(event, ActionOrder::involuntary);
+              obst.Entity::RawMoveEvent(MoveData{obst.GetTile() + directional, frames(3), frames(0), frames(0), 0.f, nullptr}, ActionOrder::involuntary);
             }
           }
         }
@@ -762,8 +761,7 @@ namespace Battle {
         if (character.WillSlideOnTiles()) {
           if (!character.HasAirShoe() && !character.HasFloatShoe()) {
             if (notMoving && !character.IsSliding()) {
-              MoveEvent event{ frames(3), frames(0), frames(0), 0, character.GetTile() + directional };
-              character.RawMoveEvent(event, ActionOrder::involuntary);
+              character.RawMoveEvent(MoveData{ character.GetTile() + directional, frames(3), frames(0), frames(0), 0.f, nullptr }, ActionOrder::involuntary);
             }
           }
         }
@@ -776,11 +774,12 @@ namespace Battle {
       charElement == Element::wood
       && state == TileState::grass;
 
+    
     const bool heal = doGrassCheck &&
       (
-        (grassHealCooldown1 == frames(0) && health <= 9)
+        (grassHealCooldown1 == frames(0) && health > 9)
         ||
-        (grassHealCooldown2 == frames(0) && health > 9)
+        (grassHealCooldown2 == frames(0) && health <= 9)
       );
 
     if (heal) {
@@ -1100,9 +1099,6 @@ namespace Battle {
           taggedAttackers.push_back(attacker->GetID());
         }
 
-        // Retangible flag takes characters out of passthrough status
-        retangible = retangible || ((props.flags & Hit::retangible) == Hit::retangible);
-
         // The attacker passed at least one defense check
         character->DefenseCheck(judge, attacker, DefenseOrder::collisionOnly);
 
@@ -1133,8 +1129,6 @@ namespace Battle {
           // we restore the hitbox properties
           attacker->SetHitboxProperties(props);
         }
-
-        if (retangible) character->SetPassthrough(false);
 
         judge.PrepareForNextAttack();
       } // end each spell loop

@@ -135,10 +135,10 @@ void DefineScriptedPlayerUserType(sol::state& state, sol::table& battle_namespac
         player.Unwrap()->charged_attack_func = VerifyLuaCallback(value);
       }
     ),
-    "charged_time_table_func", sol::property(
-      [](WeakWrapper<ScriptedPlayer>& player) { return player.Unwrap()->charge_time_table_func; },
+    "charge_time_func", sol::property(
+      [](WeakWrapper<ScriptedPlayer>& player) { return player.Unwrap()->charge_time_func; },
       [](WeakWrapper<ScriptedPlayer>& player, sol::stack_object value) {
-        player.Unwrap()->charge_time_table_func = VerifyLuaCallback(value);
+        player.Unwrap()->charge_time_func = VerifyLuaCallback(value);
       }
     ),
     "special_attack_func", sol::property(
@@ -162,10 +162,10 @@ void DefineScriptedPlayerUserType(sol::state& state, sol::table& battle_namespac
     "set_mugshot_texture_path", [] (WeakWrapperChild<Player, ScriptedPlayerFormMeta>& form, const std::string& path) {
       form.Unwrap().SetUIPath(path);
     },
-    "calculate_charge_time_func", sol::property(
-      [](WeakWrapperChild<Player, ScriptedPlayerFormMeta>& form) { return form.Unwrap().calculate_charge_time_func; },
+    "charge_time_func", sol::property(
+      [](WeakWrapperChild<Player, ScriptedPlayerFormMeta>& form) { return form.Unwrap().charge_time_func; },
       [](WeakWrapperChild<Player, ScriptedPlayerFormMeta>& form, sol::stack_object value) {
-        form.Unwrap().calculate_charge_time_func = VerifyLuaCallback(value);
+        form.Unwrap().charge_time_func = VerifyLuaCallback(value);
       }
     ),
     "on_activate_func", sol::property(

@@ -137,6 +137,12 @@ NetworkBattleScene::NetworkBattleScene(ActivityController& controller, NetworkBa
     // Subscribe to player's events
     combatPtr->Subscribe(*p);
     timeFreezePtr->Subscribe(*p);
+
+    // TODO: Enemies spawned by the mob or either Player are not subscribed.
+    // Mob battles do this in the MobIntroBattleState, but that doesn't exist here.
+    // Check for other listeners which have not been subscribed to that should have, 
+    // and consider subscribing for new spawns through Field::AddEntity.
+    CounterHitListener::Subscribe(*p);
   }
 
   // Important! State transitions are added in order of priority!
@@ -237,7 +243,7 @@ void NetworkBattleScene::OnHit(Entity& victim, const Hit::Properties& props) {
       }
     }
 
-    if (player->IsSuperEffective(props.element)) {
+    if (player->IsInForm() && player->IsSuperEffective(props.element)) {
       // animate the transformation back to default form
       TrackedFormData& formData = GetPlayerFormData(player);
 
@@ -246,6 +252,8 @@ void NetworkBattleScene::OnHit(Entity& victim, const Hit::Properties& props) {
         formData.selectedForm = -1;
       }
 
+      // TODO: Do we set this flag even if we weren't in a form?
+      // Get hit by weakness, then transform.
       if (player == GetLocalPlayer()) {
         // Local player needs to update their form selections in the card gui
         cardStatePtr->ResetSelectedForm();

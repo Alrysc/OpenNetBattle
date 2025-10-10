@@ -39,17 +39,6 @@ Player::Player() :
   activeForm = nullptr;
   superArmor = std::make_shared<DefenseSuperArmor>();
 
-  auto flinch = [this]() {
-    ClearActionQueue();
-    Charge(false);
-
-    // At the end of flinch we need to be made actionable if possible
-    SetAnimation(recoilAnimHash, [this] { MakeActionable();});
-    Audio().Play(AudioType::HURT, AudioPriority::lowest);
-  };
-
-  RegisterStatusCallback(Hit::flinch, Callback<void()>{ flinch });
-
   using namespace std::placeholders;
   auto handler = std::bind(&Player::HandleBusterEvent, this, _1, _2);
 
@@ -57,9 +46,9 @@ Player::Player() :
 
   // When we have no upcoming actions we should be in IDLE state
   actionQueue.SetIdleCallback([this] {
-    if (!IsActionable()) {
+    if (!IsIdle()) {
       auto finish = [this] {
-        MakeActionable();
+        MakeIdle();
       };
 
       animationComponent->OnFinish(finish);
@@ -99,6 +88,41 @@ void Player::RemoveSyncNode(std::shared_ptr<SyncNode> syncNode) {
   syncNodeContainer.RemoveSyncNode(*this, *animationComponent, syncNode);
 }
 
+
+void Player::HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags& appliedStatuses) {
+  // Tracks whether or not charge has already been cancelled, to avoid repeats
+  bool chargeCancel = false;
+
+  /* 
+    Clear Charge on flinch or any blocking status.
+
+    Action queue should be cleared on blocking status as well, 
+    but Entity::HandleNewStatuses already handles this.
+  */
+  if (appliedStatuses & (Hit::flinch | Character::blockingStatuses)) {
+    Charge(false);
+    chargeCancel = true;
+  }
+
+  // Clear action queue if flinched, but not if Dragged, since Flinch is allowed 
+  // to process with Drag. If it was cleared during Drag, the Drag movement would 
+  // be incorrectly removed.
+  if (appliedStatuses & Hit::flinch) {
+    if (!(appliedStatuses & Hit::drag)) {
+      ClearActionQueue();
+    }
+    if (!chargeCancel) {
+      Charge(false);
+    }
+
+    // At the end of flinch we need to be made idle if possible
+    SetAnimation(recoilAnimHash, [this] { MakeIdle(); });
+    Audio().Play(AudioType::HURT, AudioPriority::lowest);
+  }
+
+  Character::HandleNewStatuses(prevStatuses, appliedStatuses);
+}
+
 void Player::OnUpdate(double _elapsed) {
   SetColorMode(ColorMode::additive);
 
@@ -130,24 +154,24 @@ void Player::OnUpdate(double _elapsed) {
   fullyCharged = chargeEffect->IsFullyCharged();
 }
 
-void Player::MakeActionable()
+void Player::MakeIdle()
 {
   animationComponent->CancelCallbacks();
 
-  if (!IsActionable()) {
+  if (!IsIdle()) {
     animationComponent->SetAnimation("PLAYER_IDLE");
     animationComponent->SetPlaybackMode(Animator::Mode::Loop);
   }
 }
 
-bool Player::IsActionable() const
+bool Player::IsIdle() const
 {
   return animationComponent->GetAnimationString() == "PLAYER_IDLE";
 }
 
-const bool Player::CanAttack() const
+const bool Player::CanAttackImpl() const
 {
-  return animationComponent->GetAnimationString() != recoilAnimHash && Character::CanAttack();
+  return Character::CanAttackImpl() && animationComponent->GetAnimationString() != recoilAnimHash;
 }
 
 void Player::Attack() {
@@ -413,6 +437,20 @@ void Player::ActivateFormAt(int index)
     activeForm = meta->BuildForm();
 
     if (activeForm) {
+      /* 
+        Consume pending statuses from attacks to queue them, so they can be
+        removed. 
+
+        This may have also added a MoveEvent for Drag. It's reasonable to 
+        ignore this and allow it to be cleared without processing. If it 
+        was processed, it would be possible to snap two Tiles at once during 
+        transformation: One if the Player was moving by input, and again if 
+        a Drag was resolved.
+      */
+      ResolveFrameBattleDamage();
+      // Additionally clear Flinch, so Player never flinches afterwards
+      ClearStatuses(Character::blockingStatuses | Hit::flinch);
+
       SaveStats();
       activeForm->OnActivate(shared_from_base<Player>());
       CreateMoveAnimHash();
@@ -421,9 +459,18 @@ void Player::ActivateFormAt(int index)
     }
   }
 
+  ClearActionQueue();
+  MakeIdle();
+
   // Cancel charging. This will also refresh charge times 
   // for the new form.
   Charge(false);
+
+  /*
+    If current state allows, Player can act immediately on the first
+    combat frame after the transform state finishes.
+ */
+  actionBlocked = !CanAttackImpl();
 
   // Find nodes that do not have tags, those are newly added
   for (std::shared_ptr<SceneNode>& node : GetChildNodes()) {

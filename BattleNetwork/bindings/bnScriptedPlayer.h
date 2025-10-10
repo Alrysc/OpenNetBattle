@@ -61,7 +61,7 @@ public:
   sol::object charged_attack_func;
   sol::object special_attack_func;
   sol::object on_spawn_func;
-  sol::object charge_time_table_func;
+  sol::object charge_time_func;
 };
 
 #endif

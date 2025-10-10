@@ -37,6 +37,8 @@ using std::string;
 #include "bnDefenseRule.h"
 #include "bnHitProperties.h"
 #include "stx/memory.h"
+#include "bnStatusDirector.h"
+#include "bnMoveEvent.h"
 
 namespace Battle {
   class Tile;
@@ -44,32 +46,12 @@ namespace Battle {
 }
 
 class Field;
-class BattleSceneBase; // forward decl
+class BattleSceneBase; 
 
-struct MoveEvent {
-  frame_time_t deltaFrames{}; //!< Frames between tile A and B. If 0, teleport. Else, we could be sliding
-  frame_time_t delayFrames{}; //!< Startup lag to be used with animations
-  frame_time_t endlagFrames{}; //!< Wait period before action is complete
-  float height{}; //!< If this is non-zero with delta frames, the character will effectively jump
-  Battle::Tile* dest{ nullptr };
-  std::function<void()> onBegin = []{};
-  bool immutable{ false }; //!< Some move events cannot be cancelled or interupted
-
-  //!< helper function true if jumping
-  inline bool IsJumping() const {
-    return dest && height > 0.f && deltaFrames > frames(0);
-  }
-
-  //!< helper function true if sliding
-  inline bool IsSliding() const {
-    return dest && deltaFrames > frames(0) && height <= 0.0f;
-  }
-
-  //!< helper function true if normal moving
-  inline bool IsTeleporting() const {
-    return dest && deltaFrames == frames(0) && (+height) == 0.0f;
-  }
-};
+// Defined in bnMoveEvent.h
+class MoveAction;
+struct MoveEvent;
+struct MoveData;
 
 struct CombatHitProps {
   Hit::Properties hitbox; // original hitbox data
@@ -109,6 +91,8 @@ public:
   friend class Field;
   friend class Component;
   friend class BattleSceneBase;
+  friend class StatusBehaviorDirector;
+  friend class MoveAction;
 
   enum class Shadow : char {
     none = 0,
@@ -130,12 +114,13 @@ private:
   float currJumpHeight{};
   float height{}; /*!< Height of the entity relative to tile floor. Used for visual effects like projectiles or for hitbox detection */
   EventBus::Channel channel; /*!< Our event bus channel to emit events */
-  MoveEvent currMoveEvent{};
+  std::shared_ptr<MoveAction> currMoveEvent;
   VirtualInputState inputState;
   std::shared_ptr<SpriteProxyNode> shadow{ nullptr };
   std::shared_ptr<SpriteProxyNode> iceFx{ nullptr };
   std::shared_ptr<SpriteProxyNode> blindFx{ nullptr };
-  Animation iceFxAnimation, blindFxAnimation;
+  std::shared_ptr<SpriteProxyNode> confusedFx{ nullptr };
+  Animation iceFxAnimation, blindFxAnimation, confusedFxAnimation;
   /**
    * @brief Frees one component with the same ID
    * @param ID ID of the component to remove
@@ -196,7 +181,20 @@ public:
   bool Slide(Battle::Tile* dest, const frame_time_t& slideTime, const frame_time_t& endlag, ActionOrder order = ActionOrder::voluntary, std::function<void()> onBegin = [] {});
   bool Jump(Battle::Tile* dest, float destHeight, const frame_time_t& jumpTime, const frame_time_t& endlag, ActionOrder order = ActionOrder::voluntary, std::function<void()> onBegin = [] {});
   void FinishMove();
+  /**
+  * @brief Sets slideFromDrag false, clears Drag status, and calls FinishMove. 
+  *
+  * Used by the CharacterTransformBattleState, which must do these things
+  * before activating the new transformation.
+  *
+  * Note: If Drag was cleared on the same frame that a Drag movement was queued 
+  * and before the ActionQueue has processed, the movement from Drag may still 
+  * occur. 
+  */
+  void EndDrag();
   bool RawMoveEvent(const MoveEvent& event, ActionOrder order = ActionOrder::voluntary);
+  bool RawMoveEvent(const MoveData& data, ActionOrder order = ActionOrder::voluntary);
+
   void HandleMoveEvent(MoveEvent& event, const ActionQueue::ExecutionType& exec);
   void ClearActionQueue();
   const float GetJumpHeight() const;
@@ -552,6 +550,26 @@ public:
 
   void ResolveFrameBattleDamage();
 
+
+  /**
+    @brief Runs reactions to statuses that were resolved this frame. This 
+    involves reactions specific to the Entity, such as Hit::freeze playing 
+    a sound effect, as well as running all appropriate status callbacks.
+
+    Some reactions may remove statuses in [appliedStatuses].
+
+    This does not include behavior related to ongoing statuses, such as 
+    animating blindFx.
+
+    @param prevStatuses, active statuses before new statuses were resolved
+    @param appliedStatuses, statuses that made it through the queue. This 
+    includes statuses which are now active, or statuses that would have become 
+    active if they were not already active (e.g. if queued and active statuses
+    included Hit::stun, and Hit::stun passed all filtering, its bit would be 
+    set)
+  */
+  virtual void HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags& appliedStatuses);
+
   /**
    * @brief Get the character's current health
    * @return 
@@ -614,6 +632,47 @@ public:
   * @return true if character is currently blind from hitbox status effects, false otherwise
   */
   bool IsBlind();
+
+
+  void AddStatus(Hit::Flags status, frame_time_t duration);
+  void AddStatus(Hit::Flags status);
+
+  /**
+  * @brief Query if entity has a certain status tracked, whether queued or applied. 
+  * A queued status may not be applied by end of frame, or may be nullified during
+  * status processing.
+  * @param status to query
+  * @return true if entity has status applied OR queued, false otherwise
+  */
+  const bool HasStatus(Hit::Flags status) const;
+  /**
+  * @brief Query if entity has at least one of certain statuses tracked, whether queued 
+  * or applied.
+  * A queued status may not be applied by end of frame, or may be nullified during
+  * status processing.
+  * @param statuses to query
+  * @return true if entity has any status in statuses
+  */
+  const bool HasAnyStatusFrom(Hit::Flags statuses) const;
+  /**
+  * @brief Query if entity is afflicted by a certain status
+  * @param status to query
+  * @return true if entity has status applied, false otherwise
+  */
+  const bool IsStatusApplied(Hit::Flags status) const;
+
+  /**
+  * @brief Clear all statuses in parameter flags, whether queued or applied.
+  * If Hit::drag is removed as a result of this, calls EndDrag. Because of 
+  * this, prefer calling this function when removing statuses instead of 
+  * directly accessing the underlying StatusBehaviorDirector.
+  *
+  * Note: If Drag was cleared on the same frame that a Drag movement was queued 
+  * and before the ActionQueue has processed, the movement from Drag may still 
+  * occur. 
+  * @param flags to clear
+  */
+  void ClearStatuses(Hit::Flags flags);
 
   /**
    * @brief Some characters allow others to move on top of them
@@ -771,12 +830,8 @@ protected:
   ActionQueue actionQueue;
   frame_time_t moveStartupDelay{};
   std::optional<frame_time_t> moveEndlagDelay;
-  frame_time_t grassHealCooldown{ 0 }; /*!< Timer until next healing is allowed */
-  frame_time_t stunCooldown{ 0 }; /*!< Timer until stun is over */
-  frame_time_t rootCooldown{ 0 }; /*!< Timer until root is over */
-  frame_time_t freezeCooldown{ 0 }; /*!< Timer until freeze is over */
-  frame_time_t blindCooldown{ 0 }; /*!< Timer until blind is over */
-  frame_time_t invincibilityCooldown{ 0 }; /*!< Timer until invincibility is over */
+  StatusBehaviorDirector statuses;
+  
   bool counterable{};
   bool neverFlip{};
   bool hit{}; /*!< Was hit this frame */
@@ -799,36 +854,24 @@ protected:
   const int GetMoveCount() const; /*!< Total intended movements made. Used to calculate rank*/
 
   /**
-  * @brief Stun a character for maxCooldown seconds
-  * @param maxCooldown
+  * @brief Handle setup for freeze graphics and SFX
   * Used internally by class
   *
   */
-  void Stun(frame_time_t maxCooldown);
+  void IceFreeze();
 
   /**
-  * @brief Stop a character from moving for maxCooldown seconds
-  * @param maxCooldown
+  * @brief Handle setup for blind graphics
   * Used internally by class
   *
   */
-  void Root(frame_time_t maxCooldown);
+  void Blind();
 
-  /**
-  * @brief Stop a character from moving for maxCooldown seconds
-  * @param maxCooldown
+  /*
+  * @brief Handle setup for confuse graphics
   * Used internally by class
-  *
   */
-  void IceFreeze(frame_time_t maxCooldown);
-
-  /**
-  * @brief This entity should not see opponents for maxCooldown seconds
-  * @param maxCooldown
-  * Used internally by class
-  *
-  */
-  void Blind(frame_time_t maxCooldown);
+  void Confuse();
 
   /**
   * @brief Query if an attack successfully countered a Character
@@ -889,7 +932,6 @@ private:
   int maxHealth{};
   float elevation{}; // vector away from grid
   float counterSlideDelta{};
-  double elapsedMoveTime{}; /*!< delta time since recent move event began */
   Battle::TileHighlight mode; /*!< Highlight occupying tile */
   Hit::Properties hitboxProperties; /*!< Hitbox properties used when an entity is hit by this attack */
   Direction direction{};
@@ -898,11 +940,10 @@ private:
   sf::Vector2f counterSlideOffset{ 0.f, 0.f }; /*!< Used when enemies delete on counter - they slide back */
   std::vector<std::shared_ptr<DefenseRule>> defenses; /*<! All defense rules sorted by the lowest priority level */
   std::string name; /*!< Name of the entity */
+  // Controls shader active timing for statuses. Increments every Update and will overflow.
+  uint8_t statusShaderTimer{ 0 };
+  frame_time_t confuseSfxCooldown{};
 
-  // Statuses are resolved one property at a time
-  // until the entire Flag object is equal to 0x00 None
-  // Then we process the next status
-  // This continues until all statuses are processed
   std::queue<CombatHitProps> statusQueue;
 
   sf::Shader* whiteout{ nullptr }; /*!< Flash white when hit */

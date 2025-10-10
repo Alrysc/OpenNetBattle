@@ -85,9 +85,8 @@ public:
    */
   virtual void OnUpdate(double _elapsed);
 
-  void MakeActionable() override final;
-  bool IsActionable() const override final;
-  const bool CanAttack() const;
+  void MakeIdle() override final;
+  bool IsIdle() const override final;
 
   /**
    * @brief Fires a buster
@@ -164,7 +163,7 @@ public:
 
   std::shared_ptr<SyncNode> AddSyncNode(const std::string& point);
   void RemoveSyncNode(std::shared_ptr<SyncNode> syncNode);
-
+  virtual void HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags& appliedStatuses) override;
 protected:
   // functions
   void FinishConstructor();
@@ -193,6 +192,7 @@ protected:
   std::function<std::shared_ptr<CardAction>()> specialOverride{};
   std::shared_ptr<DefenseSuperArmor> superArmor{ nullptr };
   SyncNodeContainer syncNodeContainer;
+  const bool CanAttackImpl() const override;
 };
 
 template<typename T>

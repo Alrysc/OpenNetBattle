@@ -185,7 +185,7 @@ void FreedomMissionMobScene::OnHit(Entity& victim, const Hit::Properties& props)
       GetSelectedCardsUI().SetMultiplier(2);
     }
 
-    if (player->IsSuperEffective(props.element)) {
+    if (player->IsInForm() && player->IsSuperEffective(props.element)) {
       playerDecross = true;
     }
   }
@@ -209,7 +209,7 @@ void FreedomMissionMobScene::onUpdate(double elapsed)
 
     if (cur == combatPtr && playerCanFlip) {
       std::shared_ptr<Player> localPlayer = GetLocalPlayer();
-      if (localPlayer->IsActionable() && localPlayer->InputState().Has(InputEvents::pressed_option)) {
+      if (localPlayer->CanAttack() && localPlayer->InputState().Has(InputEvents::pressed_option)) {
         localPlayer->SetFacing(localPlayer->GetFacingAway());
       }
     }

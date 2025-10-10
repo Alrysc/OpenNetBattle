@@ -110,11 +110,11 @@ std::shared_ptr<CardAction> ScriptedPlayerForm::OnSpecialAction(std::shared_ptr<
 
 frame_time_t ScriptedPlayerForm::CalculateChargeTime(unsigned chargeLevel)
 {
-  if (!calculate_charge_time_func.valid()) {
+  if (!charge_time_func.valid()) {
     return frames(60);
   }
 
-  auto result = CallLuaCallbackExpectingValue<frame_time_t>(calculate_charge_time_func, chargeLevel);
+  auto result = CallLuaCallbackExpectingValue<frame_time_t>(charge_time_func, WeakWrapper(playerWeak), chargeLevel);
 
   if (result.is_error()) {
     Logger::Log(LogLevel::critical, result.error_cstr());
@@ -134,7 +134,7 @@ PlayerForm* ScriptedPlayerFormMeta::BuildForm()
   ScriptedPlayerForm* form = static_cast<ScriptedPlayerForm*>(PlayerFormMeta::BuildForm());
 
   form->playerWeak = this->playerWeak;
-  form->calculate_charge_time_func = this->calculate_charge_time_func;
+  form->charge_time_func = this->charge_time_func;
   form->on_activate_func = this->on_activate_func;
   form->on_deactivate_func = this->on_deactivate_func;
   form->update_func = this->update_func;
