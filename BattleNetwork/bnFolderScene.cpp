@@ -631,7 +631,7 @@ void FolderScene::onDraw(sf::RenderTexture& surface) {
     surface.draw(cardLabel);
 
     // Now that we are at the viewing range, draw each card in the list
-    for (int i = 0; i < maxCardsOnScreen && currCardIndex + i < numOfCards; i++) {
+    for (int i = 0; i < maxCardsOnScreen && currCardIndex + i < folder->GetSize(); i++) {
       std::string id = (*iter)->GetUUID();
       if (id.empty()) continue;
 
