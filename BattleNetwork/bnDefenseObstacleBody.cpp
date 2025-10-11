@@ -13,7 +13,8 @@ Hit::Properties& DefenseObstacleBody::FilterStatuses(Hit::Properties& statuses)
   statuses.flags &= ~Hit::stun;
   statuses.flags &= ~Hit::freeze;
   statuses.flags &= ~Hit::root;
-
+  statuses.flags &= ~Hit::blind;
+  statuses.flags &= ~Hit::confuse;
   return statuses;
 }
 
