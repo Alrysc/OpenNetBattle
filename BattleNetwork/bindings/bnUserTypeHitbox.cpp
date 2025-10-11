@@ -151,7 +151,6 @@ void DefineHitboxUserTypes(sol::state& state, sol::table& battle_namespace) {
     // New API in v2.5
     "from", [](Hit::Properties& self, Hit::Context ctx) -> Hit::Properties& { self.aggressor = ctx.aggressor; self.context = ctx; return self; },
     "dmg", [](Hit::Properties& self, int damage) -> Hit::Properties& { self.damage = static_cast<uint32_t>(damage); return self; },
-    "drg", [](Hit::Properties& self, Hit::Drag drag) -> Hit::Properties& { self.drag = drag; return self; },
     "elem", [](Hit::Properties& self, Element element) -> Hit::Properties& { self.element = element;  return self; },
     "elem2", [](Hit::Properties& self, Element element) -> Hit::Properties& { self.secondaryElement = element;  return self; },
 
@@ -186,7 +185,7 @@ void DefineHitboxUserTypes(sol::state& state, sol::table& battle_namespace) {
      ),
     "breaking", [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::breaking;  return self; },
     "impact", [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::impact;  return self; },
-    "drag", [](Hit::Properties& self, Hit::Drag drag) -> Hit::Properties& { 
+    "drg", [](Hit::Properties& self, Hit::Drag drag) -> Hit::Properties& { 
       self.flags = self.flags | Hit::drag;
       self.drag = drag;
       return self;
