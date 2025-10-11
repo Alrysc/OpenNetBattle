@@ -1375,7 +1375,7 @@ void Entity::ResolveFrameBattleDamage()
     {
 
       bool countered = IsCountered()
-      && (props.hitbox.flags & Hit::no_counter) == 0 // This is the original instead of filtered
+      && (props.filtered.flags & Hit::no_counter) == 0
       && (props.filtered.flags & Hit::impact) == Hit::impact
       && !frameCounterAggressor
       && props.filtered.aggressor;
