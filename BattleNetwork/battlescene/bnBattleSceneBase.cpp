@@ -1169,7 +1169,14 @@ std::vector<std::shared_ptr<Player>> BattleSceneBase::GetOtherPlayers()
 std::vector<std::shared_ptr<Player>> BattleSceneBase::GetAllPlayers()
 {
   std::vector<std::shared_ptr<Player>> result = otherPlayers;
-  result.insert(result.begin() + localPlayerSpawnIndex, localPlayer);
+  // Add the local player to the correct spot. Do not insert past the end.
+  if (result.size() < localPlayerSpawnIndex) {
+    result.insert(result.end(), localPlayer);
+  }
+  else {
+    result.insert(result.begin() + localPlayerSpawnIndex, localPlayer);
+  }
+  
   return result;
 }
 
