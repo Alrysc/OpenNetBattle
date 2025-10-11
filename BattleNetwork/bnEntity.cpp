@@ -264,11 +264,13 @@ void Entity::HandleNewStatuses(const Hit::Flags prevStatuses, Hit::Flags& applie
   }
 
 
-  if ((appliedStatuses & Hit::blind) == Hit::blind) {
+  // Avoid resetting the animation
+  if ((appliedStatuses & Hit::blind) == Hit::blind && !(prevStatuses & Hit::blind)) {
     Blind();
   }
 
-  if ((appliedStatuses & Hit::confuse) == Hit::confuse) {
+  // Avoid resetting the animation
+  if ((appliedStatuses & Hit::confuse) == Hit::confuse && !(prevStatuses & Hit::confuse)) {
     Confuse();
   }
 
@@ -1382,8 +1384,9 @@ void Entity::ResolveFrameBattleDamage()
       if (countered) {
         // Only consider a counter if there was an aggressor
         if (frameCounterAggressor = GetField()->GetCharacter(props.filtered.aggressor)) {
-          // Counter stun takes priority over the attack's Stun duration
-          props.filtered.flags = props.filtered.flags & ~Hit::stun;
+          // Counter stun takes priority over the attack's Stun duration.
+          // Additionally, remove flashing from the countering hit.
+          props.filtered.flags = props.filtered.flags & ~(Hit::stun | Hit::flash);
           statuses.AddStatus(Hit::stun, frames(150));
           OnCountered();
         } 
