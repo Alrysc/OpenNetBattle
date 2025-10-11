@@ -25,7 +25,6 @@ const bool CharacterTransformBattleState::FadeOutBackdrop()
 /*
   When changing form the following needs to be done:
   * Finish movement and end current Drag (both done by Entity::EndDrag) 
-    - TODO: Drag may not end sometimes on deform. Determine how this works.
   * Clear ActionQueue (done in Player::ActivateFormAt)
   * (If activating form) Clear blocking statuses (done in Player::ActivateFormAt)
     - This must be done after a call to ResolveFrameBattleDamage, also done in 
@@ -78,7 +77,7 @@ void CharacterTransformBattleState::UpdateAnimation(double elapsed)
         during FinishMove (called by EndDrag) if IsSliding is true, so it's 
         done here to ensure it happens.
       */ 
-      player->setPosition(player->GetTile()->getPosition() + player->GetDrawOffset());
+      player->RefreshPosition();
 
       player->ActivateFormAt(_index);
       player->SetColorMode(ColorMode::additive);
@@ -100,6 +99,7 @@ void CharacterTransformBattleState::UpdateAnimation(double elapsed)
         }
 
         GetScene().HandleCounterLoss(*player, false);
+        player->SetEmotion(Emotion::normal);
         Audio().Play(AudioType::SHINE);
       }
 

@@ -545,13 +545,6 @@ void BattleSceneBase::LoadBlueTeamMob(Mob& mob)
 
 void BattleSceneBase::HandleCounterLoss(Entity& subject, bool playsound)
 {
-  std::shared_ptr<PlayerSelectedCardsUI> cardUI = subject.GetFirstComponent<PlayerSelectedCardsUI>();
-
-  // No multipler to remove
-  if (!cardUI) {
-    return;
-  }
-
   std::shared_ptr<Player> p = cardUI->GetOwnerAs<Player>();
 
   // p should never be nullptr. Sanity check.
@@ -562,8 +555,8 @@ void BattleSceneBase::HandleCounterLoss(Entity& subject, bool playsound)
 
   p->RemoveNode(counterReveal);
   p->RemoveDefenseRule(counterCombatRule);
+  // Removes the multiplier
   p->SetEmotion(Emotion::normal);
-  cardUI->SetMultiplier(1);
 
   playsound ? Audio().Play(AudioType::COUNTER_BONUS, AudioPriority::highest) : 0;
 
@@ -1107,12 +1100,7 @@ void BattleSceneBase::PreparePlayerFullSynchro(const std::shared_ptr<Player>& pl
   counterReveal->setPosition(0, -bounds.height / 4.0f);
   player->AddNode(counterReveal);
 
-  std::shared_ptr<PlayerSelectedCardsUI> cardUI = player->GetFirstComponent<PlayerSelectedCardsUI>();
-
-  if (cardUI) {
-    cardUI->SetMultiplier(2);
-  }
-
+  // Adds the multiplier
   player->SetEmotion(Emotion::full_synchro);
 
   // when players get hit by impact, battle scene takes back counter blessings

@@ -129,13 +129,11 @@ void DefineHitboxUserTypes(sol::state& state, sol::table& battle_namespace) {
       // deprecated API in v2.5
       createHitProps,
       [createHitProps](int damage, Hit::Flags flags, Element element, std::optional<Hit::Context> optCtx, Hit::Drag drag) {
-        Logger::Log(LogLevel::warning,
         return createHitProps(damage, flags, element, Element::none, optCtx, drag);
       },
       // Cover for scripters who passed in Entity ID, which did nothing but is considered an 
       // error now without this constructor
       [createHitProps](int damage, Hit::Flags flags, Element element, EntityID_t id, Hit::Drag drag) {
-        Logger::Log(LogLevel::warning,
         return createHitProps(damage, flags, element, Element::none, std::nullopt, drag);
       },
       [createHitProps](std::optional<Hit::Context> optCtx) -> Hit::Properties {

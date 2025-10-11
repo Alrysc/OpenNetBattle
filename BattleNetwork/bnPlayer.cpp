@@ -9,6 +9,7 @@
 
 #include "bnBubbleTrap.h"
 #include "bnBubbleState.h"
+#include "bnPlayerSelectedCardsUI.h"
 
 #define RESOURCE_PATH "resources/navis/megaman/megaman.animation"
 
@@ -329,7 +330,23 @@ const int Player::GetMaxHealthMod()
 
 void Player::SetEmotion(Emotion emotion)
 {
+  // Forms do not use emotions aside from normal
+  if (IsInForm() && emotion != Emotion::normal) {
+    return;
+  }
+
   this->emotion = emotion;
+
+  std::shared_ptr<PlayerSelectedCardsUI> cardUI = GetFirstComponent<PlayerSelectedCardsUI>();
+
+  if (cardUI) {
+    if (emotion == Emotion::angry || emotion == Emotion::full_synchro) {
+      cardUI->SetMultiplier(2);
+    }
+    else {
+      cardUI->SetMultiplier(1);
+    }
+  }
 
   if (this->emotion == Emotion::angry) {
     AddDefenseRule(superArmor);

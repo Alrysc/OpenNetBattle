@@ -190,8 +190,8 @@ void MobBattleScene::OnHit(Entity& victim, const Hit::Properties& props)
     playerHitCount++;
 
     if (props.damage >= 300) {
+      // Sets the multiplier
       player->SetEmotion(Emotion::angry);
-      GetSelectedCardsUI().SetMultiplier(2);
     }
 
     if (player->IsInForm() && superEffective) {

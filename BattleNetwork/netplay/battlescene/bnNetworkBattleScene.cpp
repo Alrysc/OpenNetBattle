@@ -234,13 +234,8 @@ void NetworkBattleScene::OnHit(Entity& victim, const Hit::Properties& props) {
 
   if (props.damage > 0) {
     if (props.damage >= 300) {
+      // Sets the multiplier
       player->SetEmotion(Emotion::angry);
-
-      std::shared_ptr<PlayerSelectedCardsUI> ui = player->GetFirstComponent<PlayerSelectedCardsUI>();
-
-      if (ui) {
-        ui->SetMultiplier(2);
-      }
     }
 
     if (player->IsInForm() && superEffective) {
