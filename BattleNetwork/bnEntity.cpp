@@ -1221,7 +1221,10 @@ const bool Entity::Hit(Hit::Properties props) {
 
   // If the character itself is also super-effective,
   // double the damage independently from tile damage
-  bool isSuperEffective = IsSuperEffective(props.element);
+  const bool isSuperEffective = IsSuperEffective(props.element) || IsSuperEffective(props.secondaryElement);
+  const bool isFire = props.element == Element::fire || props.secondaryElement == Element::fire;
+  const bool isElec = props.element == Element::elec || props.secondaryElement == Element::elec;
+  const bool isAqua = props.element == Element::aqua || props.secondaryElement == Element::aqua;
 
   // super effective damage is x2
   if (isSuperEffective) {
@@ -1232,20 +1235,20 @@ const bool Entity::Hit(Hit::Properties props) {
   int extraDamage = 0;
 
   // Calculate elemental damage if the tile the character is on is super effective to it
-  if (props.element == Element::fire
+  if (isFire
     && GetTile()->GetState() == TileState::grass) {
     tileDamage = props.damage;
     GetTile()->SetState(TileState::normal);
   }
 
 
-  if (props.element == Element::elec
+  if (isElec
     && GetTile()->GetState() == TileState::sea) {
     tileDamage = props.damage;
   }
 
   
-  if (props.element == Element::aqua
+  if (isAqua
     && GetTile()->GetState() == TileState::ice) {
     props.flags |= Hit::freeze;
     GetTile()->SetState(TileState::normal);
@@ -1379,6 +1382,8 @@ void Entity::ResolveFrameBattleDamage()
       if (countered) {
         // Only consider a counter if there was an aggressor
         if (frameCounterAggressor = GetField()->GetCharacter(props.filtered.aggressor)) {
+          // Counter stun takes priority over the attack's Stun duration
+          props.filtered.flags = props.filtered.flags & ~Hit::stun;
           statuses.AddStatus(Hit::stun, frames(150));
           OnCountered();
         } 
@@ -1395,19 +1400,19 @@ void Entity::ResolveFrameBattleDamage()
 
       const bool hasFlash = ((props.filtered.flags & Hit::flash) == Hit::flash);
       if (hasFlash) {
-        statuses.AddStatus(Hit::flash, frames(120));
+        statuses.AddStatus(Hit::flash, props.filtered.flash_duration);
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::flash;
 
       if ((props.filtered.flags & Hit::freeze)) {
-        statuses.AddStatus(Hit::freeze, frames(150));
+        statuses.AddStatus(Hit::freeze, props.filtered.freeze_duration);
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::freeze;
 
       if ((props.filtered.flags & Hit::stun)) {
-        statuses.AddStatus(Hit::stun, frames(120));
+        statuses.AddStatus(Hit::stun, props.filtered.stun_duration);
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::stun;
@@ -1419,19 +1424,19 @@ void Entity::ResolveFrameBattleDamage()
       props.filtered.flags = props.filtered.flags & ~Hit::bubble;
 
       if ((props.filtered.flags & Hit::root)) {
-        statuses.AddStatus(Hit::root, frames(120));
+        statuses.AddStatus(Hit::root, props.filtered.root_duration);
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::root;
 
       if ((props.filtered.flags & Hit::blind)) {
-        statuses.AddStatus(Hit::blind, frames(300));
+        statuses.AddStatus(Hit::blind, props.filtered.blind_duration);
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::blind;
 
       if ((props.filtered.flags & Hit::confuse)) {
-        statuses.AddStatus(Hit::confuse, frames(110));
+        statuses.AddStatus(Hit::confuse, props.filtered.confuse_duration);
       }
 
       props.filtered.flags = props.filtered.flags & ~Hit::confuse;

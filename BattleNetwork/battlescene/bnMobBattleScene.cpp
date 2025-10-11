@@ -184,6 +184,8 @@ void MobBattleScene::Init()
 void MobBattleScene::OnHit(Entity& victim, const Hit::Properties& props)
 {
   std::shared_ptr<Player> player = GetLocalPlayer();
+
+  const bool superEffective = props.damage > 0 && (victim.IsSuperEffective(props.element) || victim.IsSuperEffective(props.secondaryElement));
   if (player.get() == &victim && props.damage > 0) {
     playerHitCount++;
 
@@ -192,13 +194,12 @@ void MobBattleScene::OnHit(Entity& victim, const Hit::Properties& props)
       GetSelectedCardsUI().SetMultiplier(2);
     }
 
-    if (player->IsInForm() && player->IsSuperEffective(props.element)) {
+    if (player->IsInForm() && superEffective) {
       playerDecross = true;
     }
   }
 
-  bool freezeBreak = victim.IsIceFrozen() && ((props.flags & Hit::breaking) == Hit::breaking);
-  bool superEffective = victim.IsSuperEffective(props.element) && props.damage > 0;
+  const bool freezeBreak = victim.IsIceFrozen() && ((props.flags & Hit::breaking) == Hit::breaking);
 
   if (freezeBreak || superEffective) {
     std::shared_ptr<AlertSymbol> seSymbol = std::make_shared<AlertSymbol>();

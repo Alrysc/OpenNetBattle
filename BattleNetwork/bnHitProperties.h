@@ -1,6 +1,7 @@
 #pragma once
 #include "bnElements.h"
 #include "bnDirection.h"
+#include "bnFrameTimeUtils.h"
 
 // forward declare
 using EntityID_t = long;
@@ -48,14 +49,22 @@ namespace Hit {
     int damage{};
     Flags flags{ Hit::none };
     Element element{ Element::none };
+    Element secondaryElement{ Element::none };
     EntityID_t aggressor{};
     Drag drag{ }; // Used by Hit::drag flag
     Context context{};
+    frame_time_t stun_duration{ 120 };
+    frame_time_t freeze_duration{ 150 };
+    frame_time_t flash_duration{ 120 };
+    frame_time_t root_duration{ 120 };
+    frame_time_t blind_duration{ 300 };
+    frame_time_t confuse_duration{ 110 };
   };
 
   const constexpr Hit::Properties DefaultProperties = {
     0,
     Flags(Hit::flinch | Hit::impact),
+    Element::none,
     Element::none,
     0,
     Direction::none,

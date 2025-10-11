@@ -711,7 +711,7 @@ namespace Battle {
       if (!character.HasFloatShoe()) {
         if (GetState() == TileState::poison) {
           if (elapsedBurnTime <= frames(0)) {
-            if (character.Hit(Hit::Properties({ 1, Hit::pierce, Element::none, 0, Direction::none }))) {
+            if (character.Hit(Hit::Properties({ 1, Hit::pierce, Element::none, Element::none, 0, Direction::none }))) {
               elapsedBurnTime = burncycle;
             }
           }
@@ -721,7 +721,7 @@ namespace Battle {
         }
 
         if (GetState() == TileState::lava && character.GetElement() != Element::fire) {
-          Hit::Properties props = { 50, Hit::flash | Hit::flinch | Hit::impact, Element::none, 0, Direction::none };
+          Hit::Properties props = { 50, Hit::flash | Hit::flinch | Hit::impact, Element::none, Element::none, 0, Direction::none };
           if (character.HasCollision(props)) {
             character.Hit(props);
             field.AddEntity(std::make_shared<Explosion>(), GetX(), GetY());
@@ -731,7 +731,7 @@ namespace Battle {
 
         if (GetState() == TileState::sea && character.GetElement() == Element::fire) {
           if (seaDamageCooldown <= frames(0)) {
-            if (character.Hit(Hit::Properties({ 1, Hit::pierce, Element::none, 0, Direction::none }))) {
+            if (character.Hit(Hit::Properties({ 1, Hit::pierce, Element::none, Element::none, 0, Direction::none }))) {
               seaDamageCooldown = seaDamageCooldownLength;
             }
           }
@@ -1043,9 +1043,9 @@ namespace Battle {
 
       Hit::Properties props = attacker->GetHitboxProperties();
 
-      hitByWind = hitByWind || props.element == Element::wind;
-      hitByFire = hitByFire || props.element == Element::fire;
-      hitByAqua = hitByAqua || props.element == Element::aqua;
+      hitByWind = hitByWind || props.element == Element::wind || props.secondaryElement == Element::wind;
+      hitByFire = hitByFire || props.element == Element::fire || props.secondaryElement == Element::fire;
+      hitByAqua = hitByAqua || props.element == Element::aqua || props.secondaryElement == Element::aqua;
 
       bool retangible = false;
       DefenseFrameStateJudge judge; // judge for this character's defenses

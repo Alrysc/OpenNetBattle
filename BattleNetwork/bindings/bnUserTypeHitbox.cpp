@@ -107,23 +107,117 @@ void DefineHitboxUserTypes(sol::state& state, sol::table& battle_namespace) {
     )
   );
 
+  auto createHitProps =
+    [](int damage,
+      Hit::Flags flags,
+      Element element,
+      Element secondaryElement,
+      std::optional<Hit::Context> optCtx,
+      Hit::Drag drag) {
+    Hit::Properties props = { static_cast<uint32_t>(damage), flags, element, secondaryElement, 0, drag };
+
+    if (optCtx) {
+      props.context = *optCtx;
+      props.aggressor = props.context.aggressor;
+    }
+
+    return props;
+  };
 
   state.new_usertype<Hit::Properties>("HitProps",
-    sol::factories([](int damage, Hit::Flags flags, Element element, std::optional<Hit::Context> contextOptional, Hit::Drag drag) {
-      Hit::Properties props = { damage, flags, element, 0, drag };
-
-      if (contextOptional) {
-        props.context = *contextOptional;
-        props.aggressor = props.context.aggressor;
+    sol::factories(
+      // deprecated API in v2.5
+      createHitProps,
+      [createHitProps](int damage, Hit::Flags flags, Element element, std::optional<Hit::Context> optCtx, Hit::Drag drag) {
+        Logger::Log(LogLevel::warning,
+        return createHitProps(damage, flags, element, Element::none, optCtx, drag);
+      },
+      // Cover for scripters who passed in Entity ID, which did nothing but is considered an 
+      // error now without this constructor
+      [createHitProps](int damage, Hit::Flags flags, Element element, EntityID_t id, Hit::Drag drag) {
+        Logger::Log(LogLevel::warning,
+        return createHitProps(damage, flags, element, Element::none, std::nullopt, drag);
+      },
+      [createHitProps](std::optional<Hit::Context> optCtx) -> Hit::Properties {
+        return createHitProps(0, Hit::none, Element::none, Element::none, optCtx, Hit::Drag{});
       }
-
-      return props;
-    }),
+    ),
+    // deprecated API in v2.5
     "aggressor", &Hit::Properties::aggressor,
     "damage", &Hit::Properties::damage,
     "drag", &Hit::Properties::drag,
     "element", &Hit::Properties::element,
-    "flags", &Hit::Properties::flags
+    "element2", &Hit::Properties::secondaryElement,
+    "flags", &Hit::Properties::flags,
+
+    // New API in v2.5
+    "from", [](Hit::Properties& self, Hit::Context ctx) -> Hit::Properties& { self.aggressor = ctx.aggressor; self.context = ctx; return self; },
+    "dmg", [](Hit::Properties& self, int damage) -> Hit::Properties& { self.damage = static_cast<uint32_t>(damage); return self; },
+    "drg", [](Hit::Properties& self, Hit::Drag drag) -> Hit::Properties& { self.drag = drag; return self; },
+    "elem", [](Hit::Properties& self, Element element) -> Hit::Properties& { self.element = element;  return self; },
+    "elem2", [](Hit::Properties& self, Element element) -> Hit::Properties& { self.secondaryElement = element;  return self; },
+
+    // Add specific flags, some with duration
+    "retangible", [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::retangible;  return self; },
+    "stun", sol::overload(
+      [](Hit::Properties& self, frame_time_t duration) -> Hit::Properties& { 
+        self.flags = self.flags | Hit::stun;  
+        self.stun_duration = duration;
+        return self; 
+      },
+      [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::stun;  return self; }
+    ),
+    "pierce", [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::pierce;  return self; },
+    "flinch", [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::flinch;  return self; },
+    "shake", [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::shake;  return self; },
+    "freeze", sol::overload(
+      [](Hit::Properties& self, frame_time_t duration) -> Hit::Properties& { 
+        self.flags = self.flags | Hit::freeze;  
+        self.freeze_duration = duration;
+        return self; 
+      },
+      [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::freeze;  return self; }
+     ),
+    "flash", sol::overload(
+      [](Hit::Properties& self, frame_time_t duration) -> Hit::Properties& { 
+        self.flags = self.flags | Hit::flash;
+        self.flash_duration = duration;
+        return self; 
+      },
+      [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::flash;  return self; }
+     ),
+    "breaking", [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::breaking;  return self; },
+    "impact", [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::impact;  return self; },
+    "drag", [](Hit::Properties& self, Hit::Drag drag) -> Hit::Properties& { 
+      self.flags = self.flags | Hit::drag;
+      self.drag = drag;
+      return self;
+    },
+    "no_counter", [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::no_counter;  return self; },
+    "root", sol::overload(
+      [](Hit::Properties& self, frame_time_t duration) -> Hit::Properties& {
+        self.flags = self.flags | Hit::root;
+        self.root_duration = duration;
+        return self;
+      },
+      [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::root;  return self; }
+     ),
+    "blind", sol::overload(
+      [](Hit::Properties& self, frame_time_t duration) -> Hit::Properties& {
+        self.flags = self.flags | Hit::blind;
+        self.blind_duration = duration;
+        return self;
+      },
+      [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::blind;  return self; }
+     ),
+    "confuse", sol::overload(
+      [](Hit::Properties& self, frame_time_t duration) -> Hit::Properties& {
+        self.flags = self.flags | Hit::confuse;
+        self.confuse_duration = duration;
+        return self;
+      },
+      [](Hit::Properties& self) -> Hit::Properties& { self.flags = self.flags | Hit::pierce;  return self; }
+    )
   );
 
   state.new_enum("Hit",

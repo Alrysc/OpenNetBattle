@@ -177,6 +177,8 @@ void FreedomMissionMobScene::Init()
 void FreedomMissionMobScene::OnHit(Entity& victim, const Hit::Properties& props)
 {
   std::shared_ptr<Player> player = GetLocalPlayer();
+
+  const bool superEffective = props.damage > 0 && (victim.IsSuperEffective(props.element) || victim.IsSuperEffective(props.secondaryElement));
   if (player.get() == &victim && props.damage > 0) {
     playerHitCount++;
 
@@ -185,12 +187,12 @@ void FreedomMissionMobScene::OnHit(Entity& victim, const Hit::Properties& props)
       GetSelectedCardsUI().SetMultiplier(2);
     }
 
-    if (player->IsInForm() && player->IsSuperEffective(props.element)) {
+    if (player->IsInForm() && superEffective) {
       playerDecross = true;
     }
   }
 
-  if (victim.IsSuperEffective(props.element) && props.damage > 0) {
+  if (superEffective) {
     std::shared_ptr<AlertSymbol> seSymbol = std::make_shared<AlertSymbol>();
     seSymbol->SetLayer(-100);
     seSymbol->SetHeight(victim.GetHeight()+(victim.getLocalBounds().height*0.5f)); // place it at sprite height
