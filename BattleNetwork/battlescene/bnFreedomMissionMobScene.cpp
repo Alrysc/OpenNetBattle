@@ -156,7 +156,7 @@ void FreedomMissionMobScene::Init()
   
 
   // Run block programs on the local player now that they are spawned
-  BlockPackageManager& blockPackages = getController().BlockPackagePartitioner().GetPartition(Game::LocalPartition);
+  BlockPackageManager& blockPackages = getController().GetBlockPackagePartitioner().GetPartition(Game::LocalPartition);
   for (const std::string& blockID : props.blocks) {
     if (!blockPackages.HasPackage(blockID)) continue;
     

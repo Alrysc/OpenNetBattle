@@ -79,7 +79,7 @@ void TimeFreezeBattleState::ProcessInputs()
           const Battle::Card& card = *maybe_card;
 
           if (card.IsTimeFreeze() && CanCounter(p)) {
-            if (std::shared_ptr<CardAction> action = CardToAction(card, p, &GetScene().getController().CardPackagePartitioner(), card.GetProps())) {
+            if (std::shared_ptr<CardAction> action = CardToAction(card, p, &GetScene().getController().GetCardPackagePartitioner(), card.GetProps())) {
               OnCardActionUsed(action, CurrentTime::AsMilli());
               cardsUI->DropNextCard();
             }

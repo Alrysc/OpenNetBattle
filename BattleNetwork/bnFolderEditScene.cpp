@@ -235,7 +235,7 @@ void FolderEditScene::onUpdate(double elapsed) {
     if (Input().HasSystemCopyEvent()) {
       std::string buffer;
       const std::string& nickname = getController().Session().GetNick();
-      const CardPackageManager& manager = getController().CardPackagePartitioner().GetPartition(Game::LocalPartition);
+      const CardPackageManager& manager = getController().GetCardPackagePartitioner().GetPartition(Game::LocalPartition);
 
       buffer += "```\n";
       buffer += "# Folder by " + nickname + "\n";
@@ -811,7 +811,7 @@ void FolderEditScene::DrawFolder(sf::RenderTarget& surface) {
   for (int i = 0; i < folderView.maxCardsOnScreen && folderView.firstCardOnScreen + i < folderView.numOfCards; i++) {
     if (!iter->IsEmpty()) {
       const Battle::Card& copy = iter->ViewCard();
-      bool hasID = getController().CardPackagePartitioner().GetPartition(Game::LocalPartition).HasPackage(copy.GetUUID());
+      bool hasID = getController().GetCardPackagePartitioner().GetPartition(Game::LocalPartition).HasPackage(copy.GetUUID());
 
       cardLabel.SetColor(sf::Color::White);
 
@@ -1216,7 +1216,7 @@ void FolderEditScene::PlaceFolderDataIntoCardSlots() {
 }
 
 void FolderEditScene::PlaceLibraryDataIntoBuckets() {
-  auto& packageManager = getController().CardPackagePartitioner().GetPartition(Game::LocalPartition);
+  auto& packageManager = getController().GetCardPackagePartitioner().GetPartition(Game::LocalPartition);
   std::string packageId = packageManager.FirstValidPackage();
 
   if (packageId.empty()) return;
@@ -1247,7 +1247,7 @@ void FolderEditScene::WriteNewFolderData() {
 }
 
 std::shared_ptr<sf::Texture> FolderEditScene::GetIconForCard(const std::string& uuid) {
-  auto& packageManager = getController().CardPackagePartitioner().GetPartition(Game::LocalPartition);
+  auto& packageManager = getController().GetCardPackagePartitioner().GetPartition(Game::LocalPartition);
 
   if (!packageManager.HasPackage(uuid))
     return noIcon;
@@ -1256,7 +1256,7 @@ std::shared_ptr<sf::Texture> FolderEditScene::GetIconForCard(const std::string& 
   return meta.GetIconTexture();
 }
 std::shared_ptr<sf::Texture> FolderEditScene::GetPreviewForCard(const std::string& uuid) {
-  auto& packageManager = getController().CardPackagePartitioner().GetPartition(Game::LocalPartition);
+  auto& packageManager = getController().GetCardPackagePartitioner().GetPartition(Game::LocalPartition);
 
   if (!packageManager.HasPackage(uuid))
     return noPreview;

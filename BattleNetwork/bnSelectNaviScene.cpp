@@ -12,7 +12,7 @@ using namespace swoosh::types;
 
 bool SelectNaviScene::IsNaviAllowed()
 {
-  PlayerPackagePartitioner& partitioner = getController().PlayerPackagePartitioner();
+  PlayerPackagePartitioner& partitioner = getController().GetPlayerPackagePartitioner();
   PackageAddress addr = { Game::LocalPartition, naviSelectionId };
   PackageHash hash = { addr.packageId, partitioner.FindPackageByAddress(addr).GetPackageFingerprint() };
 
@@ -92,7 +92,7 @@ SelectNaviScene::SelectNaviScene(swoosh::ActivityController& controller, std::st
   navi.setOrigin(navi.getLocalBounds().width / 2.f, navi.getLocalBounds().height / 2.f);
   navi.setPosition(100.f, 150.f);
 
-  auto& playerPkg = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(currentChosenId);
+  auto& playerPkg = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(currentChosenId);
   if (auto tex = playerPkg.GetPreviewTexture()) {
     navi.setTexture(tex);
   }
@@ -285,7 +285,7 @@ void SelectNaviScene::GotoPlayerCust()
 
   std::vector<PlayerCustScene::Piece*> blocks;
 
-  auto& blockManager = getController().BlockPackagePartitioner().GetPartition(Game::LocalPartition);
+  auto& blockManager = getController().GetBlockPackagePartitioner().GetPartition(Game::LocalPartition);
   std::string package = blockManager.FirstValidPackage();
 
   do {
@@ -323,7 +323,7 @@ void SelectNaviScene::onUpdate(double elapsed) {
   bg->Update((float)elapsed);
 
   std::string prevSelectId = currentChosenId;
-  PlayerPackageManager& packageManager = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition);
+  PlayerPackageManager& packageManager = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition);
 
   bool openTextbox = owTextbox.IsOpen();
 

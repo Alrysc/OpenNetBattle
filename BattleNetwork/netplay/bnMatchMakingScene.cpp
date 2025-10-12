@@ -52,7 +52,7 @@ MatchMakingScene::MatchMakingScene(swoosh::ActivityController& controller, const
   this->gridBG = new GridBackground();
   gridBG->SetColor(sf::Color(0)); // hide until it is ready
 
-  auto& playerPkg = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(selectedNaviId);
+  auto& playerPkg = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(selectedNaviId);
   clientPreview.setTexture(playerPkg.GetPreviewTexture());
   clientPreview.setScale(2.f, 2.f);
   clientPreview.setOrigin(clientPreview.getLocalBounds().width, clientPreview.getLocalBounds().height);
@@ -423,7 +423,7 @@ void MatchMakingScene::onResume() {
       Reset();
     }
     else if(remoteNaviPackage.HasID()) {
-      PlayerMeta& playerPkg = getController().PlayerPackagePartitioner().FindPackageByAddress(remoteNaviPackage);
+      PlayerMeta& playerPkg = getController().GetPlayerPackagePartitioner().FindPackageByAddress(remoteNaviPackage);
       this->remotePreview.setTexture(playerPkg.GetPreviewTexture());
       auto height = remotePreview.getSprite().getLocalBounds().height;
       remotePreview.setOrigin(sf::Vector2f(0, height));
@@ -461,9 +461,9 @@ void MatchMakingScene::onUpdate(double elapsed) {
 
     std::vector<PackageHash> cardHashes, selectedNaviBlocks;
 
-    BlockPackageManager& blockPackages = getController().BlockPackagePartitioner().GetPartition(Game::LocalPartition);
-    CardPackageManager& cardPackages = getController().CardPackagePartitioner().GetPartition(Game::LocalPartition);
-    PlayerPackageManager& playerPackages = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition);
+    BlockPackageManager& blockPackages = getController().GetBlockPackagePartitioner().GetPartition(Game::LocalPartition);
+    CardPackageManager& cardPackages = getController().GetCardPackagePartitioner().GetPartition(Game::LocalPartition);
+    PlayerPackageManager& playerPackages = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition);
 
     GameSession& session = getController().Session();
     for (const PackageAddress& blockAddr : PlayerCustScene::GetInstalledBlocks(selectedNaviId, session)) {
@@ -580,8 +580,8 @@ void MatchMakingScene::onUpdate(double elapsed) {
       Audio().StopStream();
 
       // Configure the session
-      PlayerPackagePartitioner& playerPartitioner = getController().PlayerPackagePartitioner();
-      BlockPackagePartitioner& blockPartitioner = getController().BlockPackagePartitioner();
+      PlayerPackagePartitioner& playerPartitioner = getController().GetPlayerPackagePartitioner();
+      BlockPackagePartitioner& blockPartitioner = getController().GetBlockPackagePartitioner();
 
       PlayerMeta& meta = playerPartitioner.FindPackageByAddress({ Game::LocalPartition, selectedNaviId });
       const std::string& image = meta.GetMugshotTexturePath();

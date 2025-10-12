@@ -50,7 +50,7 @@ void RewardBattleState::onStart(const BattleSceneState*)
   battleResultsWidget = new BattleResultsWidget(
     BattleResults::CalculateScore(results, mob),
     mob,
-    scene.getController().CardPackagePartitioner().GetPartition(Game::LocalPartition)
+    scene.getController().GetCardPackagePartitioner().GetPartition(Game::LocalPartition)
   );
 }
 

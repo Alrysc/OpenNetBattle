@@ -571,27 +571,27 @@ const std::filesystem::path Game::SaveGamesPath()
   return std::filesystem::u8path(sago::getSaveGamesFolder1());
 }
 
-CardPackagePartitioner& Game::CardPackagePartitioner()
+CardPackagePartitioner& Game::GetCardPackagePartitioner()
 {
   return *cardPackagePartitioner;
 }
 
-PlayerPackagePartitioner& Game::PlayerPackagePartitioner()
+PlayerPackagePartitioner& Game::GetPlayerPackagePartitioner()
 {
   return *playerPackagePartitioner;
 }
 
-MobPackagePartitioner& Game::MobPackagePartitioner()
+MobPackagePartitioner& Game::GetMobPackagePartitioner()
 {
   return *mobPackagePartitioner;
 }
 
-BlockPackagePartitioner& Game::BlockPackagePartitioner()
+BlockPackagePartitioner& Game::GetBlockPackagePartitioner()
 {
   return *blockPackagePartitioner;
 }
 
-LuaLibraryPackagePartitioner& Game::LuaLibraryPackagePartitioner()
+LuaLibraryPackagePartitioner& Game::GetLuaLibraryPackagePartitioner()
 {
   return *luaLibraryPackagePartitioner;
 }

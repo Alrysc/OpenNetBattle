@@ -526,7 +526,7 @@ void Overworld::SceneBase::RefreshNaviSprite()
   // Only refresh all data and graphics if this is a new navi
   if (lastSelectedNaviId == currentNaviId && !lastSelectedNaviId.empty()) return;
 
-  PlayerPackageManager& packageManager = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition);
+  PlayerPackageManager& packageManager = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition);
   if (!packageManager.HasPackage(currentNaviId)) {
     currentNaviId = packageManager.FirstValidPackage();
   }
@@ -579,7 +579,7 @@ void Overworld::SceneBase::NaviEquipSelectedFolder()
     }
   }
   else {
-    currentNaviId = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition).FirstValidPackage();
+    currentNaviId = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition).FirstValidPackage();
     session.SetKeyValue("SelectedNavi", currentNaviId);
   }
 }
@@ -826,7 +826,7 @@ void Overworld::SceneBase::GotoConfig()
 
 void Overworld::SceneBase::GotoMobSelect()
 {
-  MobPackageManager& pm = getController().MobPackagePartitioner().GetPartition(Game::LocalPartition);
+  MobPackageManager& pm = getController().GetMobPackagePartitioner().GetPartition(Game::LocalPartition);
   if (pm.Size() == 0) {
     personalMenu->Close();
     menuSystem.EnqueueMessage("No enemy mods installed.");

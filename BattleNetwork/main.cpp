@@ -236,7 +236,7 @@ int HandleBattleOnly(Game& g, TaskGroup tasks, const std::string& playerpath, co
   std::string mobid = mobpath;
 
   if (isURL) {
-    auto result = DownloadPackageFromURL<ScriptedMob>(mobpath, g.MobPackagePartitioner().GetPartition(Game::LocalPartition));
+    auto result = DownloadPackageFromURL<ScriptedMob>(mobpath, g.GetMobPackagePartitioner().GetPartition(Game::LocalPartition));
     if (result.is_error()) {
       Logger::Log(LogLevel::critical, result.error_cstr());
       return EXIT_FAILURE;
@@ -265,7 +265,7 @@ int HandleBattleOnly(Game& g, TaskGroup tasks, const std::string& playerpath, co
   auto field = std::make_shared<Field>(6, 3);
 
   // Get the navi we selected
-  auto& playermeta = g.PlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(playerpath);
+  auto& playermeta = g.GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(playerpath);
   const std::string& image = playermeta.GetMugshotTexturePath();
   Animation mugshotAnim = Animation() << playermeta.GetMugshotAnimationPath();
   const std::string& emotionsTexture = playermeta.GetEmotionsTexturePath();
@@ -273,11 +273,11 @@ int HandleBattleOnly(Game& g, TaskGroup tasks, const std::string& playerpath, co
   auto emotions = handle.Textures().LoadFromFile(emotionsTexture);
   auto player = std::shared_ptr<Player>(playermeta.GetData());
 
-  auto& mobmeta = g.MobPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(mobid);
+  auto& mobmeta = g.GetMobPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(mobid);
   Mob* mob = mobmeta.GetData()->Build(field);
 
   // Shuffle our new folder
-  std::unique_ptr<CardFolder> folder = LoadFolderFromFile(folderPath, g.CardPackagePartitioner().GetPartition(Game::LocalPartition));
+  std::unique_ptr<CardFolder> folder = LoadFolderFromFile(folderPath, g.GetCardPackagePartitioner().GetPartition(Game::LocalPartition));
 
   // Queue screen transition to Battle Scene with a white fade effect
   // just like the game
@@ -435,11 +435,11 @@ void PrintPackageHash(Game& g, TaskGroup tasks) {
     tasks.DoNextTask();
   }
 
-  BlockPackageManager& blocks = g.BlockPackagePartitioner().GetPartition(Game::LocalPartition);
-  PlayerPackageManager& players = g.PlayerPackagePartitioner().GetPartition(Game::LocalPartition);
-  CardPackageManager& cards = g.CardPackagePartitioner().GetPartition(Game::LocalPartition);
-  MobPackageManager& mobs = g.MobPackagePartitioner().GetPartition(Game::LocalPartition);
-  LuaLibraryPackageManager& libs = g.LuaLibraryPackagePartitioner().GetPartition(Game::LocalPartition);
+  BlockPackageManager& blocks = g.GetBlockPackagePartitioner().GetPartition(Game::LocalPartition);
+  PlayerPackageManager& players = g.GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition);
+  CardPackageManager& cards = g.GetCardPackagePartitioner().GetPartition(Game::LocalPartition);
+  MobPackageManager& mobs = g.GetMobPackagePartitioner().GetPartition(Game::LocalPartition);
+  LuaLibraryPackageManager& libs = g.GetLuaLibraryPackagePartitioner().GetPartition(Game::LocalPartition);
 
   size_t lineLen{};
   std::string blockStr, playerStr, cardStr, mobStr, libStr;

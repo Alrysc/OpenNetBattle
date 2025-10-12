@@ -107,7 +107,7 @@ Overworld::OnlineArea::OnlineArea(
   player->AddNode(emoteNode);
 
   // ensure the existence of these package partitions
-  getController().MobPackagePartitioner().CreateNamespace(Game::ServerPartition);
+  getController().GetMobPackagePartitioner().CreateNamespace(Game::ServerPartition);
 }
 
 Overworld::OnlineArea::~OnlineArea()
@@ -150,7 +150,7 @@ void Overworld::OnlineArea::AddSceneChangeTask(const std::function<void()>& task
 }
 
 void Overworld::OnlineArea::SetAvatarAsSpeaker() {
-  PlayerMeta& meta = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(GetCurrentNaviID());
+  PlayerMeta& meta = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(GetCurrentNaviID());
   const std::string& image = meta.GetMugshotTexturePath();
   const std::string& anim = meta.GetMugshotAnimationPath();
   std::shared_ptr<sf::Texture> mugshot = Textures().LoadFromFile(image);
@@ -242,7 +242,7 @@ void Overworld::OnlineArea::ResetPVPStep(bool failed)
 
 void Overworld::OnlineArea::RemovePackages() {
   Logger::Log(LogLevel::debug, "Removing server packages");
-  getController().MobPackagePartitioner().GetPartition(Game::ServerPartition).ClearPackages();
+  getController().GetMobPackagePartitioner().GetPartition(Game::ServerPartition).ClearPackages();
 }
 
 void Overworld::OnlineArea::updateOtherPlayers(double elapsed) {
@@ -1005,7 +1005,7 @@ void Overworld::OnlineArea::processPacketBody(const Poco::Buffer<char>& data)
 void Overworld::OnlineArea::CheckPlayerAgainstWhitelist()
 {
   // Check if the current navi is compatible
-  PlayerPackagePartitioner& partitioner = getController().PlayerPackagePartitioner();
+  PlayerPackagePartitioner& partitioner = getController().GetPlayerPackagePartitioner();
   PlayerPackageManager& packages = partitioner.GetPartition(Game::LocalPartition);
   std::string& id = GetCurrentNaviID();
   PackageAddress addr = { Game::LocalPartition, id };
@@ -1178,7 +1178,7 @@ void Overworld::OnlineArea::sendAvatarChangeSignal()
 {
   sendAvatarAssetStream();
 
-  auto& naviMeta = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(GetCurrentNaviID());
+  auto& naviMeta = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(GetCurrentNaviID());
   auto naviName = naviMeta.GetName();
   auto maxHP = naviMeta.GetHP();
   auto element = GetStrFromElement(naviMeta.GetElement());
@@ -1227,7 +1227,7 @@ void Overworld::OnlineArea::sendAvatarAssetStream() {
   // + reliability type + id + packet type
   auto packetHeaderSize = 1 + 8 + 2;
 
-  auto& naviMeta = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(GetCurrentNaviID());
+  auto& naviMeta = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition).FindPackageByID(GetCurrentNaviID());
 
   auto texturePath = naviMeta.GetOverworldTexturePath();
   auto textureData = readBytes(texturePath);
@@ -2218,9 +2218,9 @@ void Overworld::OnlineArea::receivePVPSignal(BufferReader& reader, const Poco::B
   std::string remoteAddress = reader.ReadString<uint16_t>(buffer);
   Poco::Net::SocketAddress remote = Poco::Net::SocketAddress(remoteAddress);
 
-  BlockPackagePartitioner& blockPartition = getController().BlockPackagePartitioner();
-  CardPackagePartitioner& cardPartition = getController().CardPackagePartitioner();
-  PlayerPackagePartitioner& playerPartition = getController().PlayerPackagePartitioner();
+  BlockPackagePartitioner& blockPartition = getController().GetBlockPackagePartitioner();
+  CardPackagePartitioner& cardPartition = getController().GetCardPackagePartitioner();
+  PlayerPackagePartitioner& playerPartition = getController().GetPlayerPackagePartitioner();
 
   try {
     netBattleProcessor = std::make_shared<Netplay::PacketProcessor>(remote, Net().GetMaxPayloadSize());
@@ -2238,7 +2238,7 @@ void Overworld::OnlineArea::receivePVPSignal(BufferReader& reader, const Poco::B
   });
 
   AddSceneChangeTask([=, &blockPartition, &playerPartition] {
-    CardPackagePartitioner& cardPartition = getController().CardPackagePartitioner();
+    CardPackagePartitioner& cardPartition = getController().GetCardPackagePartitioner();
     std::vector<PackageHash> cards, selectedNaviBlocks;
     const std::string& selectedNaviId = GetCurrentNaviID();
     std::optional<CardFolder*> selectedFolder = GetSelectedFolder();
@@ -2404,7 +2404,7 @@ void Overworld::OnlineArea::receiveLoadPackageSignal(BufferReader& reader, const
   }
 
   // loading everything as an encounter for now
-  LoadPackage(getController().MobPackagePartitioner(), file_path);
+  LoadPackage(getController().GetMobPackagePartitioner(), file_path);
 }
 
 void Overworld::OnlineArea::receiveModWhitelistSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
@@ -2473,8 +2473,8 @@ void Overworld::OnlineArea::receiveMobSignal(BufferReader& reader, const Poco::B
     return;
   }
 
-  MobPackageManager& mobPackages = getController().MobPackagePartitioner().GetPartition(Game::ServerPartition);
-  PlayerPackageManager& playerPackages = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition);
+  MobPackageManager& mobPackages = getController().GetMobPackagePartitioner().GetPartition(Game::ServerPartition);
+  PlayerPackageManager& playerPackages = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition);
 
   std::string packageId = mobPackages.FilepathToPackageID(file_path);
 

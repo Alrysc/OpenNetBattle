@@ -117,7 +117,7 @@ void TitleScene::onUpdate(double elapsed)
   if (!checkMods) {
     checkMods = true;
 
-    PlayerPackageManager& pm = getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition);
+    PlayerPackageManager& pm = getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition);
 
     if (pm.Size() == 0) {
       std::string path = "resources/ow/prog/";

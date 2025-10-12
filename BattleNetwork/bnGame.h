@@ -159,11 +159,11 @@ public:
   const std::filesystem::path PicturesPath();
   const std::filesystem::path SaveGamesPath();
 
-  CardPackagePartitioner& CardPackagePartitioner();
-  PlayerPackagePartitioner& PlayerPackagePartitioner();
-  MobPackagePartitioner& MobPackagePartitioner();
-  BlockPackagePartitioner& BlockPackagePartitioner();
-  LuaLibraryPackagePartitioner& LuaLibraryPackagePartitioner();
+  CardPackagePartitioner& GetCardPackagePartitioner();
+  PlayerPackagePartitioner& GetPlayerPackagePartitioner();
+  MobPackagePartitioner& GetMobPackagePartitioner();
+  BlockPackagePartitioner& GetBlockPackagePartitioner();
+  LuaLibraryPackagePartitioner& GetLuaLibraryPackagePartitioner();
 
   static char* LocalPartition;
   static char* RemotePartition;

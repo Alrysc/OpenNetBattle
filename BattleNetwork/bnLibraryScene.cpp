@@ -328,7 +328,7 @@ void LibraryScene::onResume() {
 }
 
 void LibraryScene::onDraw(sf::RenderTexture& surface) {
-  auto& packageManager = getController().CardPackagePartitioner().GetPartition(Game::LocalPartition);
+  auto& packageManager = getController().GetCardPackagePartitioner().GetPartition(Game::LocalPartition);
 
   surface.draw(bg);
   surface.draw(menuLabel);

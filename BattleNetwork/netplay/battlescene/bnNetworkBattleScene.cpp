@@ -404,7 +404,7 @@ bool NetworkBattleScene::IsRemoteBehind() {
 }
 
 void NetworkBattleScene::Init() {
-  BlockPackagePartitioner& partition = getController().BlockPackagePartitioner();
+  BlockPackagePartitioner& partition = getController().GetBlockPackagePartitioner();
 
   size_t idx = 0;
   for (auto& [blocks, p, x, y] : spawnOrder) {
@@ -474,7 +474,7 @@ void NetworkBattleScene::SendHandshakeSignal(uint8_t syncIndex) {
   writer.Write<int32_t>(buffer, (int32_t)form);
   writer.Write<uint8_t>(buffer, (uint8_t)len);
 
-  CardPackagePartitioner& partitioner = getController().CardPackagePartitioner();
+  CardPackagePartitioner& partitioner = getController().GetCardPackagePartitioner();
   CardPackageManager& localPackages = partitioner.GetPartition(Game::LocalPartition);
   CardPackageManager& remotePackages = partitioner.GetPartition(Game::RemotePartition);
   for (std::string& id : prefilteredCardSelection) {
@@ -592,7 +592,7 @@ void NetworkBattleScene::ReceiveHandshakeSignal(const Poco::Buffer<char>& buffer
   size_t handSize = remoteUUIDs.size();
   int len = (int)handSize;
 
-  CardPackagePartitioner& partition = getController().CardPackagePartitioner();
+  CardPackagePartitioner& partition = getController().GetCardPackagePartitioner();
   CardPackageManager& localPackageManager = partition.GetPartition(Game::LocalPartition);
   if (handSize) {
     for (size_t i = 0; i < handSize; i++) {

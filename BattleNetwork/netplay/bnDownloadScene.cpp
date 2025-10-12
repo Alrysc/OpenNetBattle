@@ -144,52 +144,52 @@ void DownloadScene::SendCoinFlip() {
 
 void DownloadScene::ResetRemotePartitions()
 {
-  CardPackagePartitioner& cardPartitioner = getController().CardPackagePartitioner();
+  CardPackagePartitioner& cardPartitioner = getController().GetCardPackagePartitioner();
   cardPartitioner.CreateNamespace(Game::RemotePartition);
   cardPartitioner.GetPartition(Game::RemotePartition).ErasePackages();
 
-  PlayerPackagePartitioner& playerPartitioner = getController().PlayerPackagePartitioner();
+  PlayerPackagePartitioner& playerPartitioner = getController().GetPlayerPackagePartitioner();
   playerPartitioner.CreateNamespace(Game::RemotePartition);
   playerPartitioner.GetPartition(Game::RemotePartition).ErasePackages();
 
-  BlockPackagePartitioner& blockPartitioner = getController().BlockPackagePartitioner();
+  BlockPackagePartitioner& blockPartitioner = getController().GetBlockPackagePartitioner();
   blockPartitioner.CreateNamespace(Game::RemotePartition);
   blockPartitioner.GetPartition(Game::RemotePartition).ErasePackages();
 
-  LuaLibraryPackagePartitioner& libPartitioner = getController().LuaLibraryPackagePartitioner();
+  LuaLibraryPackagePartitioner& libPartitioner = getController().GetLuaLibraryPackagePartitioner();
   libPartitioner.CreateNamespace(Game::RemotePartition);
   libPartitioner.GetPartition(Game::RemotePartition).ErasePackages();
 }
 
 CardPackageManager& DownloadScene::RemoteCardPartition()
 {
-  CardPackagePartitioner& partitioner = getController().CardPackagePartitioner();
+  CardPackagePartitioner& partitioner = getController().GetCardPackagePartitioner();
   return partitioner.GetPartition(Game::RemotePartition);
 }
 
 CardPackageManager& DownloadScene::LocalCardPartition()
 {
-  return getController().CardPackagePartitioner().GetPartition(Game::LocalPartition);
+  return getController().GetCardPackagePartitioner().GetPartition(Game::LocalPartition);
 }
 
 BlockPackageManager& DownloadScene::RemoteBlockPartition()
 {
-  return getController().BlockPackagePartitioner().GetPartition(Game::RemotePartition);
+  return getController().GetBlockPackagePartitioner().GetPartition(Game::RemotePartition);
 }
 
 BlockPackageManager& DownloadScene::LocalBlockPartition()
 {
-  return getController().BlockPackagePartitioner().GetPartition(Game::LocalPartition);
+  return getController().GetBlockPackagePartitioner().GetPartition(Game::LocalPartition);
 }
 
 PlayerPackageManager& DownloadScene::RemotePlayerPartition()
 {
-  return getController().PlayerPackagePartitioner().GetPartition(Game::RemotePartition);
+  return getController().GetPlayerPackagePartitioner().GetPartition(Game::RemotePartition);
 }
 
 PlayerPackageManager& DownloadScene::LocalPlayerPartition()
 {
-  return getController().PlayerPackagePartitioner().GetPartition(Game::LocalPartition);
+  return getController().GetPlayerPackagePartitioner().GetPartition(Game::LocalPartition);
 }
 
 void DownloadScene::RemoveFromDownloadList(const std::string& id)
