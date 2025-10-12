@@ -190,7 +190,7 @@ ConfigScene::ConfigScene(swoosh::ActivityController& controller) :
   textbox(sf::Vector2f(4, 250)),
   Scene(controller)
 {
-  configSettings = getController().ConfigSettings();
+  configSettings = getController().GetConfigSettings();
   gamepadWasActive = Input().IsUsingGamepadControls();
   textbox.SetTextSpeed(2.0);
   isSelectingTopMenu = false;

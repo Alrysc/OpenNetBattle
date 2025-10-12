@@ -170,7 +170,7 @@ public:
   static char* ServerPartition;
   static char* Version;
 
-  ConfigSettings& ConfigSettings();
+  ConfigSettings& GetConfigSettings();
   GameSession& Session();
 
   /**

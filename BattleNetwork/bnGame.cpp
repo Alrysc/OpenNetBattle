@@ -596,7 +596,7 @@ LuaLibraryPackagePartitioner& Game::GetLuaLibraryPackagePartitioner()
   return *luaLibraryPackagePartitioner;
 }
 
-ConfigSettings& Game::ConfigSettings()
+ConfigSettings& Game::GetConfigSettings()
 {
   return configSettings;
 }
