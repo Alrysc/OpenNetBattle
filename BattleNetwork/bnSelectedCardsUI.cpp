@@ -113,7 +113,7 @@ void SelectedCardsUI::OnUpdate(double _elapsed) {
     Battle::Tile* tile = character->GetTile();
     if (tile == nullptr) return;
    
-    MaybeCard& maybeCard = Peek();
+    const MaybeCard& maybeCard = Peek();
     if (!maybeCard.has_value()) return;
 
     Battle::Card& data = maybeCard.value().get();
@@ -159,6 +159,8 @@ bool SelectedCardsUI::UseNextCard() {
 
   Battle::Tile* tile = owner->GetTile();
 
+  // TODO: This happens before the card is removed from the hand if moving. It should not.
+
   // Reset tile when card is boosted by Sea.
   // It could be worth checking this under the CanBoost() check below, 
   // but for now, hfacing the modded damage should mean the modded damage 
@@ -186,18 +188,19 @@ void SelectedCardsUI::Broadcast(std::shared_ptr<CardAction> action)
   CardActionUsePublisher::Broadcast(action, CurrentTime::AsMilli());
 }
 
-SelectedCardsUI::MaybeCard SelectedCardsUI::Peek()
+const SelectedCardsUI::MaybeCard& SelectedCardsUI::Peek()
 {
   if (curr < selectedCards->size()) {
-    return MaybeCard(std::ref((*selectedCards)[curr]));
+    const MaybeCard& ret = MaybeCard(std::ref((*selectedCards)[curr]));
+    return ret;
   }
-
-  return {};
+  const MaybeCard& ret = {};
+  return ret;
 }
 
 bool SelectedCardsUI::HandlePlayEvent(std::shared_ptr<Character> from)
 {
-  auto maybe_card = Peek();
+  const MaybeCard& maybe_card = Peek();
 
   if (maybe_card.has_value()) {
     // convert meta data into a useable action object
