@@ -3,6 +3,7 @@
 #include <charconv>
 #include <iomanip>
 #include <map>
+#include <cstdint>
 
 // NOTE: the following code was from http://burtleburtle.net/bob/c/lookup3.c
 // References: http://burtleburtle.net/bob/hash/index.html
