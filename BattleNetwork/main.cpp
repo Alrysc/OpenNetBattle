@@ -27,6 +27,10 @@
 #include <Poco/URI.h>
 #include <Poco/StreamCopier.h>
 
+#ifdef APPIMAGE
+#include <filesystem>
+#endif
+
 // Launches the standard game with full setup and configuration
 int LaunchGame(Game& g, const cxxopts::ParseResult& results);
 
@@ -50,6 +54,30 @@ static cxxopts::Options options("ONB", "Open Net Battle Engine");
 
 int main(int argc, char** argv) {
   // Create help and other generic flags
+
+#ifdef APPIMAGE
+  // Change the working directory to the XDG_CONFIG_HOME path.
+  // This is a hack to get the program functioning in AppImage.
+  std::string USER_HOME = std::getenv("HOME");
+  std::string ONB_CONFIG_PATH = USER_HOME + "/.config/OpenNetBattle";
+  std::string ONB_RESOURCE_PATH = USER_HOME + "/.config/OpenNetBattle/resources";
+
+  std::cout << "This is an AppImage build. YMMV." << std::endl;
+
+  if(!std::filesystem::exists(ONB_CONFIG_PATH) || !std::filesystem::exists(ONB_RESOURCE_PATH)) {
+    std::filesystem::create_directory(ONB_CONFIG_PATH);
+    std::filesystem::create_directory(ONB_RESOURCE_PATH);
+    std::cout << "First run detected." << endl;
+    std::cout << endl;
+    std::cout << "Please extract the resource datafiles to " << ONB_RESOURCE_PATH << " and run the AppImage again." << endl;
+    return EXIT_FAILURE;
+  }
+
+  std::filesystem::current_path(ONB_CONFIG_PATH);
+
+#endif
+
+
   options.add_options()
     ("h,help", "Print all options")
     ("e,errorLevel", "Set the level to filter error messages [silent|info|warning|critical|debug] (default is `critical`)", cxxopts::value<std::string>()->default_value("warning|critical"))
