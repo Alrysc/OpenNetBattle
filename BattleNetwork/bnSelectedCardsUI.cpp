@@ -188,14 +188,14 @@ void SelectedCardsUI::Broadcast(std::shared_ptr<CardAction> action)
   CardActionUsePublisher::Broadcast(action, CurrentTime::AsMilli());
 }
 
-const SelectedCardsUI::MaybeCard& SelectedCardsUI::Peek()
+const SelectedCardsUI::MaybeCard SelectedCardsUI::Peek()
 {
   if (curr < selectedCards->size()) {
-    const MaybeCard& ret = MaybeCard(std::ref((*selectedCards)[curr]));
-    return ret;
+    
+    return MaybeCard(std::ref((*selectedCards)[curr]));;
   }
-  const MaybeCard& ret = {};
-  return ret;
+
+  return {};
 }
 
 bool SelectedCardsUI::HandlePlayEvent(std::shared_ptr<Character> from)
