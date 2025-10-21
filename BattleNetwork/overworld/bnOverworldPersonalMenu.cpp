@@ -15,12 +15,14 @@ namespace Overworld {
     // Load resources
     areaLabel.setPosition(127, 119);
     infoText = areaLabel;
+    ringSound = Audio().LoadFromFile(SoundPaths::PET_RINGTONE);
 
     // clock
     time.setPosition(480 - 4.f, 6.f);
     time.setScale(2.f, 2.f);
 
     widgetTexture = Textures().LoadFromFile("resources/ui/main_menu_ui.png");
+    ringTexture = Textures().LoadFromFile(TexturePaths::HUD_RING);
 
     banner = std::make_shared<SpriteProxyNode>();
     symbol = std::make_shared<SpriteProxyNode>();
@@ -29,6 +31,7 @@ namespace Overworld {
     infoBox = std::make_shared<SpriteProxyNode>();
     selectTextSpr = std::make_shared<SpriteProxyNode>();
     placeTextSpr = std::make_shared<SpriteProxyNode>();
+    ringSpr = std::make_shared<SpriteProxyNode>();
 
     banner->setTexture(Textures().LoadFromFile("resources/ui/menu_overlay.png"));
     symbol->setTexture(widgetTexture);
@@ -37,6 +40,7 @@ namespace Overworld {
     infoBox->setTexture(widgetTexture);
     selectTextSpr->setTexture(widgetTexture);
     placeTextSpr->setTexture(widgetTexture);
+    ringSpr->setTexture(ringTexture);
 
     AddNode(banner);
 
@@ -71,11 +75,18 @@ namespace Overworld {
     // Device / HP top-left position
     optionAnim << "PET";
     optionAnim.SetFrame(1, icon->getSprite());
+    
+    ResetIconTexture();
+    SetPlayerDisplayMode(PlayerDisplayMode::health);
     icon->setPosition(2, 3);
+    ringAnim = Animation(AnimationPaths::HUD_RING) << "RING";
+    icon->AddNode(ringSpr);
+    const sf::FloatRect& iconBounds = icon->getLocalBounds();
+    ringSpr->setPosition(iconBounds.width, iconBounds.height * 0.5f);
+    ringSpr->SetLayer(-1);
+
     healthUI.setPosition(2, 3);
     healthUI.setScale(0.5, 0.5);
-
-    SetPlayerDisplay(PlayerDisplay::PlayerHealth);
 
     exitAnim = Animation("resources/ui/main_menu_ui.animation") << Animator::Mode::Loop;
 
@@ -301,6 +312,7 @@ namespace Overworld {
       frameTick = frames(0);
     }
 
+    ringAnim.Update(0, ringSpr->getSprite());
     easeInTimer.update(sf::seconds(static_cast<float>(elapsed)));
     elapsedThisFrame = elapsed;
     healthUI.SetHP(session->health);
@@ -507,15 +519,15 @@ namespace Overworld {
     DrawTime(target);
   }
 
-  void PersonalMenu::SetPlayerDisplay(PlayerDisplay mode) {
+  void PersonalMenu::SetPlayerDisplayMode(PlayerDisplayMode mode) {
     switch (mode) {
-    case PlayerDisplay::PlayerHealth:
+    case PlayerDisplayMode::health:
     {
       healthUI.Reveal();
       icon->Hide();
     }
     break;
-    case PlayerDisplay::PlayerIcon:
+    case PlayerDisplayMode::icon:
     {
       healthUI.Hide();
       icon->Reveal();
@@ -680,5 +692,11 @@ namespace Overworld {
       QueueAnimTasks(currState);
       easeInTimer.start();
     }
+  }
+
+  void PersonalMenu::Ringtone()
+  {
+    ringAnim << "RING";
+    Audio().Play(ringSound, AudioPriority::highest);
   }
 }

@@ -8,6 +8,7 @@ namespace Overworld {
     int health{};
     int maxHealth{};
     int money{};
+    int fragments{};
     Emotion emotion{};
     Inbox inbox;
   };

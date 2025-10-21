@@ -123,6 +123,7 @@ namespace TexturePaths {
   path GAMEPAD_SUPPORT_ICON = "resources/ui/gamepad_support_icon.png";
   path MAIN_MENU_UI = "resources/ui/main_menu_ui.png";
   path ELEMENT_ICON = "resources/ui/elements.png";
+  path HUD_RING = "resources/ui/hud_ring.png";
 
   // SHADER TEXTURE MAPS
   path DISTORTION_TEXTURE = "resources/shaders/textures/distortion.png";
@@ -148,10 +149,12 @@ namespace AnimationPaths {
   path BLIND_FX = "resources/scenes/battle/blind.animation";
   path CONFUSED_FX = "resources/scenes/battle/spells/confused.animation";
   path MISC_COUNTER_REVEAL = "resources/scenes/battle/counter_reveal.animation";
+  path HUD_RING = "resources/ui/hud_ring.anim";
 }
 
 namespace SoundPaths {
   path ICE_FX = "resources/sfx/freeze.ogg";
   path CONFUSED_FX = "resources/sfx/confused.ogg";
+  path PET_RINGTONE = "resources/sfx/ringtone.ogg";
 }
 #undef path

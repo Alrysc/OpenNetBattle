@@ -11,11 +11,12 @@
 #include "../bnPlayerHealthUI.h"
 #include <Swoosh/Timer.h>
 #include <Swoosh/Ease.h>
+#include <SFML/Audio/SoundBuffer.hpp>
 
 namespace Overworld {
-  enum class PlayerDisplay : char {
-    PlayerIcon = 0,
-    PlayerHealth
+  enum class PlayerDisplayMode : uint16_t {
+    health = 0,
+    icon
   };
 
   /**
@@ -50,8 +51,10 @@ namespace Overworld {
     bool extendedHold{ false }; //!< If player holds the arrow keys down
     state currState{}; //!< Track all open/close states. Default is closed
     std::string areaName; //!< Area name typed out
+    std::shared_ptr<sf::Texture> ringTexture;
     std::shared_ptr<sf::Texture> iconTexture; //!< If supplying an icon, use this one
     std::shared_ptr<sf::Texture> widgetTexture; //!< texture used by widget
+    std::shared_ptr<sf::SoundBuffer> ringSound;
     Text areaLabel; //!< Area name displayed by widget
     mutable Text areaLabelThick; //!< Thick area name displayed outside of widget
     mutable Text infoText; //!< Text obj used for all other info
@@ -64,6 +67,8 @@ namespace Overworld {
     std::shared_ptr<SpriteProxyNode> infoBox;
     std::shared_ptr<SpriteProxyNode> selectTextSpr;
     std::shared_ptr<SpriteProxyNode> placeTextSpr;
+    std::shared_ptr<SpriteProxyNode> ringSpr;
+
     PlayerHealthUI healthUI;
     OptionsList optionsList;
     std::vector<std::shared_ptr<SpriteProxyNode>> options;
@@ -71,6 +76,7 @@ namespace Overworld {
     Animation infoBoxAnim;
     Animation optionAnim;
     Animation exitAnim;
+    Animation ringAnim;
 
     // Selection input delays
     double maxSelectInputCooldown{}; /*!< Maximum delay */
@@ -112,7 +118,7 @@ namespace Overworld {
 
     /// Set data
 
-    void SetPlayerDisplay(PlayerDisplay mode);
+    void SetPlayerDisplayMode(PlayerDisplayMode mode);
 
     /**
     * @brief Set the area name to display
@@ -167,5 +173,7 @@ namespace Overworld {
     * @brief Close the widget and begin the close animations
     */
     virtual void Close();
+
+    void Ringtone();
   };
 }

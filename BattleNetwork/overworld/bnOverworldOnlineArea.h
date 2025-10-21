@@ -68,6 +68,11 @@ namespace Overworld {
       Poco::Buffer<char> buffer{ 0 };
     };
 
+    struct RemoteScreenSprite {
+      Animation anim{};
+      std::shared_ptr<SpriteProxyNode> node{ nullptr };
+    };
+
     std::string host;
     uint16_t port;
     std::shared_ptr<Overworld::EmoteNode> emoteNode;
@@ -94,6 +99,7 @@ namespace Overworld {
     ServerAssetManager serverAssetManager;
     IdentityManager identityManager;
     AssetMeta incomingAsset;
+    std::map<std::string, RemoteScreenSprite> remoteSprites;
     std::map<std::string, OnlinePlayer> onlinePlayers;
     std::map<unsigned, ExcludedObjectData> excludedObjects;
     std::unordered_set<std::string> excludedActors;
@@ -151,6 +157,7 @@ namespace Overworld {
     void sendShopCloseSignal();
     void sendShopPurchaseSignal(const std::string& itemName);
     void sendBattleResultsSignal(const BattleResults& results);
+    void sendEmailReadSignal(const std::string& id);
 
     void receiveAuthorizeSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receiveLoginSignal(BufferReader& reader, const Poco::Buffer<char>&);
@@ -205,8 +212,18 @@ namespace Overworld {
     void receiveActorAnimateSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receiveActorKeyFramesSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receiveActorMinimapColorSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveFragmentSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveHudVisibleSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveHudSetModeSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveBattleRewardItemSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveSendMailSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveRingtoneSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveSpriteCreateSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveSpriteUpdateSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveSpriteRemoveSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void leave();
-  protected:
+  
+protected:
     virtual std::string GetPath(const std::string& path);
     virtual std::string GetText(const std::string& path);
     virtual std::shared_ptr<sf::Texture> GetTexture(const std::string& path);

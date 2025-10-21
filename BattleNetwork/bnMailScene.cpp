@@ -301,8 +301,8 @@ void MailScene::onDraw(sf::RenderTexture& surface)
   if (isReading) {
     auto& msg = inbox.GetAt(this->reading);
     
-    if (msg.mugshot.getNativeHandle()) {
-      sf::Sprite mug(msg.mugshot, sf::IntRect(0, 0, 40, 48));
+    if (msg.mugshot->getNativeHandle()) {
+      sf::Sprite mug(*msg.mugshot.get(), sf::IntRect(0, 0, 40, 48));
       mug.setScale(2.f, 2.f);
       mug.setPosition(12.f, 208.f);
       sf::RenderStates states;

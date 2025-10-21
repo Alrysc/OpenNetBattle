@@ -5,8 +5,8 @@
 
 namespace Overworld
 {
-  constexpr std::string_view VERSION_ID = "https://github.com/ArthurCose/Scriptable-OpenNetBattle-Server";
-  const uint64_t VERSION_ITERATION = 42;
+  constexpr std::string_view VERSION_ID = "https://github.com/OpenNetBattle/Server@Backport/2.1";
+  const uint64_t VERSION_ITERATION = 43;
 
   constexpr double PACKET_RESEND_RATE = 1.0 / 20.0;
 
@@ -41,6 +41,7 @@ namespace Overworld
     shop_close,
     shop_purchase,
     battle_results,
+    read_email,
     size,
     unknown = size
   };
@@ -115,6 +116,16 @@ namespace Overworld
     actor_animate,
     actor_keyframes,
     actor_minimap_color,
+    // 2.1 Backport features from 2.5
+    fragments,
+    hud_visible,
+    battle_reward_item,
+    send_mail,
+    hud_set_mode,
+    ringtone,
+    sprite_create,
+    sprite_update,
+    sprite_remove,
     size,
     unknown = size
   };

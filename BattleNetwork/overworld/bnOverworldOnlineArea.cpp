@@ -1381,6 +1381,14 @@ void Overworld::OnlineArea::sendBattleResultsSignal(const BattleResults& battleR
   packetProcessor->SendPacket(Reliability::ReliableOrdered, buffer);
 }
 
+void Overworld::OnlineArea::sendEmailReadSignal(const std::string& id)
+{
+  BufferWriter writer;
+  Poco::Buffer<char> buffer{ 0 };
+  writer.Write(buffer, ClientEvents::read_email);
+  writer.WriteString<uint8_t>(buffer, id);
+}
+
 void Overworld::OnlineArea::receiveAuthorizeSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
 {
   auto authAddress = reader.ReadString<uint16_t>(buffer);
@@ -1705,7 +1713,7 @@ void Overworld::OnlineArea::receiveEmotionSignal(BufferReader& reader, const Poc
 
 void Overworld::OnlineArea::receiveMoneySignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
 {
-  auto balance = reader.Read<int>(buffer);
+  int balance = reader.Read<int>(buffer);
   GetPlayerSession()->money = balance;
 }
 
@@ -2974,6 +2982,119 @@ void Overworld::OnlineArea::receiveActorMinimapColorSignal(BufferReader& reader,
   if (abstractUser.marker) {
     abstractUser.marker->SetMarkerColor(color);
   }
+}
+
+void Overworld::OnlineArea::receiveFragmentSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+  int balance = reader.Read<int>(buffer);
+  GetPlayerSession()->money = balance;
+}
+
+void Overworld::OnlineArea::receiveHudVisibleSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+  int balance = reader.Read<int>(buffer);
+  GetPlayerSession()->fragments = balance;
+}
+
+void Overworld::OnlineArea::receiveHudSetModeSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+  PlayerDisplayMode mode = static_cast<PlayerDisplayMode>(reader.Read<uint16_t>(buffer));
+  GetPersonalMenu().SetPlayerDisplayMode(mode);
+}
+
+void Overworld::OnlineArea::receiveBattleRewardItemSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+}
+
+void Overworld::OnlineArea::receiveSendMailSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+  Inbox& inbox = GetPlayerSession()->inbox;
+
+  std::string id = reader.ReadString<uint16_t>(buffer);
+  Inbox::Icons icon = reader.Read<Inbox::Icons>(buffer);
+  std::string  title = reader.ReadString<uint16_t>(buffer);
+  std::string  from = reader.ReadString<uint16_t>(buffer);
+  std::string  body = reader.ReadString<uint16_t>(buffer);
+  std::string  mugshotAssetName = reader.ReadString<uint16_t>(buffer);
+  std::string  animationAssetName = reader.ReadString<uint16_t>(buffer);
+  bool readAlready = reader.Read<uint8_t>(buffer);
+
+  std::shared_ptr<sf::Texture> mugshot = serverAssetManager.GetTexture(mugshotAssetName);
+  Animation mugshotAnim = serverAssetManager.GetPath(animationAssetName);
+
+  Inbox::OnMailReadCallback onReadCallback;
+
+  onReadCallback.Slot([this](Inbox::Mail& data) {
+    sendEmailReadSignal(data.id);
+    });
+
+  inbox.AddMail({ id, icon, title, from, body, mugshot, mugshotAnim, onReadCallback, readAlready });
+}
+
+void Overworld::OnlineArea::receiveRingtoneSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+  GetPersonalMenu().Ringtone();
+}
+
+void Overworld::OnlineArea::receiveSpriteCreateSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+  const std::string& sprite_id = reader.ReadString<uint8_t>(buffer);
+  auto iter = remoteSprites.find(sprite_id);
+  if (iter != remoteSprites.end()) return;
+
+  std::shared_ptr<SpriteProxyNode> node = std::make_shared<SpriteProxyNode>();
+
+  const std::string& texture_path = reader.ReadString<uint16_t>(buffer);
+  auto tex = serverAssetManager.GetTexture(texture_path);
+
+  if (tex) {
+    node->setTexture(tex, true);
+  }
+
+  // Add to table
+  RemoteScreenSprite& spr =
+    remoteSprites[sprite_id] = RemoteScreenSprite{ {}, node };
+
+  const std::string anim_path = reader.ReadString<uint16_t>(buffer);
+  const std::string& anim_state = reader.ReadString<uint16_t>(buffer);
+
+  // TODO: sprite _should_ allow changing the state
+  if (anim_path.empty() || anim_state.empty()) return;
+
+  const std::vector<char>& dataBuff = serverAssetManager.GetData(anim_path);
+  const std::string& data = std::string(dataBuff.begin(), dataBuff.end());
+  spr.anim.LoadWithData(data);
+  spr.anim.SetAnimation(anim_state);
+}
+
+void Overworld::OnlineArea::receiveSpriteUpdateSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+  const std::string& sprite_id = reader.ReadString<uint8_t>(buffer);
+  auto iter = remoteSprites.find(sprite_id);
+  if (iter == remoteSprites.end()) return;
+
+  std::shared_ptr<SpriteProxyNode> spr = iter->second.node;
+
+  // Translate
+  float tx = static_cast<float>(reader.Read<int16_t>(buffer));
+  float ty = static_cast<float>(reader.Read<int16_t>(buffer));
+
+  // Scale
+  float sx = reader.Read<float>(buffer);
+  float sy = reader.Read<float>(buffer);
+
+  // Rotate
+  float rot = reader.Read<float>(buffer);
+
+  // Apply
+  spr->setPosition(tx, ty);
+  spr->setScale(sx, sy);
+  spr->setRotation(rot);
+}
+
+void Overworld::OnlineArea::receiveSpriteRemoveSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+  remoteSprites.erase(reader.ReadString<uint8_t>(buffer));
 }
 
 void Overworld::OnlineArea::leave() {

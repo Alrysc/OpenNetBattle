@@ -2,14 +2,29 @@
 
 void Inbox::AddMail(const Inbox::Mail& mail)
 {
+  auto& iter = mailList.begin();
+  while (iter != mailList.end()) {
+    if (iter->id == mail.id) {
+      *iter = mail; // overwrite contents
+      return;
+    }
+    iter = std::next(iter);
+  }
+
+  // New id, insert the mail
   mailList.push_back(mail);
 }
 
-void Inbox::RemoveMail(size_t index)
+void Inbox::RemoveMail(const std::string& id)
 {
-  if (index >= mailList.size()) return;
-
-  mailList.erase(mailList.begin() + index);
+  auto& iter = mailList.begin();
+  while (iter != mailList.end()) {
+    if (iter->id == id) {
+      mailList.erase(iter);
+      return;
+    }
+    iter = std::next(iter);
+  }
 }
 
 void Inbox::ReadMail(size_t index, std::function<void(const Inbox::Mail& msg)> onRead)
