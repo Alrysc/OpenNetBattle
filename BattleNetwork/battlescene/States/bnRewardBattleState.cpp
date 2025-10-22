@@ -33,6 +33,7 @@ RewardBattleState::~RewardBattleState()
 void RewardBattleState::onStart(const BattleSceneState*)
 {
   BattleSceneBase& scene = GetScene();
+  
   Player& player = *scene.GetLocalPlayer();
   player.ChangeState<PlayerIdleState>();
   scene.GetField()->RequestBattleStop();
@@ -46,6 +47,8 @@ void RewardBattleState::onStart(const BattleSceneState*)
   results.doubleDelete = scene.DoubleDelete();
   results.tripleDelete = scene.TripleDelete();
   results.finalEmotion = player.GetEmotion();
+  
+  scene.InvokeEndCallback(results);
 
   battleResultsWidget = new BattleResultsWidget(
     BattleResults::CalculateScore(results, mob),

@@ -423,6 +423,7 @@ public:
 
   const bool FadeInBackdrop(double amount, double to, bool affectBackground);
   const bool FadeOutBackdrop(double amount);
+  void InvokeEndCallback(const BattleResults& results);
 
   std::vector<std::reference_wrapper<const Character>> RedTeamMobList();
   std::vector<std::reference_wrapper<const Character>> BlueTeamMobList();

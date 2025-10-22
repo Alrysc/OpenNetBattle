@@ -217,6 +217,11 @@ void Overworld::OnlineArea::onUpdate(double elapsed)
 
   SceneBase::onUpdate(elapsed);
 
+  for (auto& p : remoteSpriteObjects) {
+    auto& data = p.second;
+    data.anim.Update(elapsed, data.node->getSprite());
+  }
+
   auto& camera = GetCamera();
   warpCameraController.UpdateCamera(float(elapsed), camera);
   serverCameraController.UpdateCamera(float(elapsed), camera);
@@ -519,6 +524,14 @@ void Overworld::OnlineArea::onDraw(sf::RenderTexture& surface)
     copyScreen = false;
   }
 
+  for (auto& p : remoteSpriteObjects) {
+    auto& data = p.second;
+    const sf::Vector2f prev = data.node->getPosition();
+    //data.node->setPosition(GetCamera().GetView().getCenter());
+    data.node->draw(surface);
+    //data.node->setPosition(prev);
+  }
+
   if (GetMenuSystem().IsFullscreen()) {
     return;
   }
@@ -567,7 +580,7 @@ void Overworld::OnlineArea::onDraw(sf::RenderTexture& surface)
   };
 
   for (auto& pair : onlinePlayers) {
-    auto id = pair.first;
+    auto& id = pair.first;
 
     if (excludedActors.find(id) != excludedActors.end()) {
       // actor is excluded, do not display on hover
@@ -993,6 +1006,22 @@ void Overworld::OnlineArea::processPacketBody(const Poco::Buffer<char>& data)
       break;
     case ServerEvents::actor_minimap_color:
       receiveActorMinimapColorSignal(reader, data);
+      break;
+    case ServerEvents::sprite_alloc:
+      receiveSpriteAllocSignal(reader, data);
+      break;
+    case ServerEvents::sprite_dealloc:
+      receiveSpriteDeallocSignal(reader, data);
+      break;
+    case ServerEvents::sprite_draw:
+      receiveSpriteDrawSignal(reader, data);
+      break;
+    case ServerEvents::sprite_erase:
+      receiveSpriteEraseSignal(reader, data);
+      break;
+    case ServerEvents::hud_visible:
+      receiveHudVisibleSignal(reader, data);
+      break;
     }
   }
   catch (Poco::IOException& e) {
@@ -2992,8 +3021,13 @@ void Overworld::OnlineArea::receiveFragmentSignal(BufferReader& reader, const Po
 
 void Overworld::OnlineArea::receiveHudVisibleSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
 {
-  int balance = reader.Read<int>(buffer);
-  GetPlayerSession()->fragments = balance;
+  const bool visible = GetPersonalMenu().IsVisible();
+  if (visible) {
+    GetPersonalMenu().Hide();
+  }
+  else {
+    GetPersonalMenu().Reveal();
+  }
 }
 
 void Overworld::OnlineArea::receiveHudSetModeSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
@@ -3036,17 +3070,18 @@ void Overworld::OnlineArea::receiveRingtoneSignal(BufferReader& reader, const Po
   GetPersonalMenu().Ringtone();
 }
 
-void Overworld::OnlineArea::receiveSpriteCreateSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+void Overworld::OnlineArea::receiveSpriteAllocSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
 {
-  const std::string& sprite_id = reader.ReadString<uint8_t>(buffer);
+  const std::string& sprite_id = reader.ReadString<uint16_t>(buffer);
+  const std::string& texture_path = reader.ReadString<uint16_t>(buffer);
+
   auto iter = remoteSprites.find(sprite_id);
   if (iter != remoteSprites.end()) return;
 
-  std::shared_ptr<SpriteProxyNode> node = std::make_shared<SpriteProxyNode>();
+  std::shared_ptr<SpriteProxyNode> node = 
+    std::make_shared<SpriteProxyNode>();
 
-  const std::string& texture_path = reader.ReadString<uint16_t>(buffer);
   auto tex = serverAssetManager.GetTexture(texture_path);
-
   if (tex) {
     node->setTexture(tex, true);
   }
@@ -3058,43 +3093,139 @@ void Overworld::OnlineArea::receiveSpriteCreateSignal(BufferReader& reader, cons
   const std::string anim_path = reader.ReadString<uint16_t>(buffer);
   const std::string& anim_state = reader.ReadString<uint16_t>(buffer);
 
-  // TODO: sprite _should_ allow changing the state
   if (anim_path.empty() || anim_state.empty()) return;
 
-  const std::vector<char>& dataBuff = serverAssetManager.GetData(anim_path);
-  const std::string& data = std::string(dataBuff.begin(), dataBuff.end());
-  spr.anim.LoadWithData(data);
+  const std::string anim_data = serverAssetManager.GetText(anim_path);
+  spr.anim.LoadWithData(anim_data);
   spr.anim.SetAnimation(anim_state);
 }
 
-void Overworld::OnlineArea::receiveSpriteUpdateSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+void Overworld::OnlineArea::receiveSpriteDrawSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
 {
-  const std::string& sprite_id = reader.ReadString<uint8_t>(buffer);
+  const std::string& sprite_id = reader.ReadString<uint16_t>(buffer);
   auto iter = remoteSprites.find(sprite_id);
   if (iter == remoteSprites.end()) return;
 
-  std::shared_ptr<SpriteProxyNode> spr = iter->second.node;
+  std::shared_ptr<SpriteProxyNode> node = iter->second.node;
 
-  // Translate
-  float tx = static_cast<float>(reader.Read<int16_t>(buffer));
-  float ty = static_cast<float>(reader.Read<int16_t>(buffer));
+  // Unique instance object
+  const std::string& obj_id = reader.ReadString<uint16_t>(buffer);
 
-  // Scale
-  float sx = reader.Read<float>(buffer);
-  float sy = reader.Read<float>(buffer);
+  auto iter2 = remoteSpriteObjects.find(obj_id);
+  if (iter2 == remoteSpriteObjects.end()) {
+     // Add to table
+     remoteSpriteObjects[obj_id] = RemoteScreenSprite{
+       iter->second.anim,
+       std::make_shared<SpriteProxyNode>(node->getSprite()), 
+     };
+     iter2 = remoteSpriteObjects.find(obj_id);
+  }
+
+  // Fetch
+  RemoteScreenSprite& obj = iter2->second;
+
+  // Read mask
+  const uint16_t mask = reader.Read<uint16_t>(buffer);
+
+  sf::Vector2f prevPos = obj.node->getPosition();
+  sf::Vector2f prevScale = obj.node->getScale();
+
+  // Translation X
+  if ((mask & 0x01) == 0x01) {
+    const float tx = 
+      static_cast<float>(reader.Read<int16_t>(buffer));
+    obj.node->setPosition(tx, prevPos.y);
+    prevPos.x = tx;
+  }
+
+  // Translation Y
+  if ((mask & 0x02) == 0x02) {
+    const float ty =
+      static_cast<float>(reader.Read<int16_t>(buffer));
+    obj.node->setPosition(prevPos.x, ty);
+  }
+
+  // Scale X
+  if ((mask & 0x04) == 0x04) {
+    const float sx = reader.Read<float>(buffer);
+    obj.node->setScale(sx, prevScale.y);
+    prevScale.x = sx;
+  }
+
+  // Scale Y
+  if ((mask & 0x08) == 0x08) {
+    const float sy = reader.Read<float>(buffer);
+    obj.node->setScale(prevScale.x, sy);
+  }
 
   // Rotate
-  float rot = reader.Read<float>(buffer);
+  if ((mask & 0x10) == 0x10) {
+    const float rot = reader.Read<float>(buffer);
+    obj.node->setRotation(rot);
+  }
 
-  // Apply
-  spr->setPosition(tx, ty);
-  spr->setScale(sx, sy);
-  spr->setRotation(rot);
+  // Opacity
+  if ((mask & 0x20) == 0x20) {
+    const uint8_t opacity = reader.Read<uint8_t>(buffer);
+    sf::Color color = obj.node->getColor();
+    color.a = opacity;
+    obj.node->setColor(color);
+  }
+
+  // Texture
+  if ((mask & 0x40) == 0x40) {
+    const std::string texture_path = 
+      reader.ReadString<uint16_t>(buffer);
+
+    auto tex = serverAssetManager.GetTexture(texture_path);
+
+    if (tex) {
+      node->setTexture(tex, true);
+      obj.anim.Refresh(obj.node->getSprite());
+    }
+  }
+
+  // Anim Path
+  if ((mask & 0x80) == 0x80) {
+    const std::string anim_path =
+      reader.ReadString<uint16_t>(buffer);
+
+    auto anim_data = serverAssetManager.GetText(anim_path);
+
+    if (!anim_data.empty()) {
+      obj.anim = Animation(anim_data);
+    }
+  }
+
+  // Anim State
+  if ((mask & 0x100) == 0x100) {
+    const std::string anim_state =
+      reader.ReadString<uint16_t>(buffer);
+    obj.anim.SetAnimation(anim_state);
+    obj.anim.Refresh(obj.node->getSprite());
+  }
 }
 
-void Overworld::OnlineArea::receiveSpriteRemoveSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+void Overworld::OnlineArea::receiveSpriteEraseSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
 {
-  remoteSprites.erase(reader.ReadString<uint8_t>(buffer));
+  remoteSpriteObjects.erase(reader.ReadString<uint8_t>(buffer));
+}
+
+void Overworld::OnlineArea::receiveSpriteDeallocSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
+{
+  auto iter = remoteSprites.find(reader.ReadString<uint8_t>(buffer));
+  if (iter == remoteSprites.end()) return;
+
+  for (auto& iter2 = remoteSpriteObjects.begin(); iter2 != remoteSpriteObjects.end(); /*manual*/) {
+    if (iter2->second.node == iter->second.node) {
+      iter2 = remoteSpriteObjects.erase(iter2);
+    }
+    else {
+      iter2 = std::next(iter2);
+    }
+  }
+
+  remoteSprites.erase(iter);
 }
 
 void Overworld::OnlineArea::leave() {

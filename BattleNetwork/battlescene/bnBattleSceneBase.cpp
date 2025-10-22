@@ -295,6 +295,14 @@ void BattleSceneBase::OnDeleteEvent(Character& pending)
   }
 }
 
+void BattleSceneBase::InvokeEndCallback(const BattleResults& results)
+{
+  if (onEndCallback) {
+    onEndCallback(results);
+    onEndCallback = nullptr;
+  }
+}
+
 const BattleSceneState* BattleSceneBase::GetCurrentState() const
 {
   return current;
@@ -1037,9 +1045,6 @@ void BattleSceneBase::onDraw(sf::RenderTexture& surface) {
 
 void BattleSceneBase::onEnd()
 {
-  if (onEndCallback) {
-    onEndCallback(battleResults);
-  }
 }
 
 bool BattleSceneBase::TrackOtherPlayer(std::shared_ptr<Player>& other) {
