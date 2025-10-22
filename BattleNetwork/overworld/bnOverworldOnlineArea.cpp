@@ -23,6 +23,7 @@
 #include "../bnMobPackageManager.h"
 #include "../bnPlayerPackageManager.h"
 #include "../bnBlockPackageManager.h"
+#include "../bnLuaLibraryPackageManager.h"
 #include "../bnMessageQuestion.h"
 #include "../bnPlayerCustScene.h"
 #include "../bnSelectNaviScene.h"
@@ -108,6 +109,10 @@ Overworld::OnlineArea::OnlineArea(
 
   // ensure the existence of these package partitions
   getController().GetMobPackagePartitioner().CreateNamespace(Game::ServerPartition);
+  getController().GetCardPackagePartitioner().CreateNamespace(Game::ServerPartition);
+  getController().GetBlockPackagePartitioner().CreateNamespace(Game::ServerPartition);
+  getController().GetLuaLibraryPackagePartitioner().CreateNamespace(Game::ServerPartition);
+  getController().GetPlayerPackagePartitioner().CreateNamespace(Game::ServerPartition);
 }
 
 Overworld::OnlineArea::~OnlineArea()
@@ -246,8 +251,33 @@ void Overworld::OnlineArea::ResetPVPStep(bool failed)
 }
 
 void Overworld::OnlineArea::RemovePackages() {
-  Logger::Log(LogLevel::debug, "Removing server packages");
-  getController().GetMobPackagePartitioner().GetPartition(Game::ServerPartition).ClearPackages();
+  Logger::Log(LogLevel::debug,
+    "Removing server packages");
+
+  getController()
+    .GetBlockPackagePartitioner()
+    .GetPartition(Game::ServerPartition)
+    .ClearPackages();
+
+  getController()
+    .GetCardPackagePartitioner()
+    .GetPartition(Game::ServerPartition)
+    .ClearPackages();
+
+  getController()
+    .GetMobPackagePartitioner()
+    .GetPartition(Game::ServerPartition)
+    .ClearPackages();
+
+  getController()
+    .GetLuaLibraryPackagePartitioner()
+    .GetPartition(Game::ServerPartition)
+    .ClearPackages();
+
+  getController()
+    .GetPlayerPackagePartitioner()
+    .GetPartition(Game::ServerPartition)
+    .ClearPackages();
 }
 
 void Overworld::OnlineArea::updateOtherPlayers(double elapsed) {
@@ -617,25 +647,32 @@ void Overworld::OnlineArea::onStart()
   movementTimer.start();
 }
 
-void Overworld::OnlineArea::onEnd()
-{
+void Overworld::OnlineArea::onEnd() {
+  if (!cleanedUp) {
+    Logger::Log(LogLevel::critical, "OverworldOnlineArea::cleanup() call missed, may have unintended effects from transition period");
+    cleanup();
+  }
+}
+
+void Overworld::OnlineArea::cleanup() {
+  for (auto& [key, processor] : authorizationProcessors) {
+    Net().DropProcessor(processor);
+  }
+  authorizationProcessors.clear();
+
   if (packetProcessor) {
     sendLogoutSignal();
     Net().DropProcessor(packetProcessor);
     packetProcessor = nullptr;
   }
 
-  for (auto& [key, processor] : authorizationProcessors) {
-    Net().DropProcessor(processor);
-  }
+  RemovePackages();
+  GameSession& session = getController().Session();
+  session.SetWhitelist({}); // clear the whitelist
+  // TODO: Add blacklist support
+  //session.SetBlacklist({}); // clear the blacklist
 
-  getController().Session().SetWhitelist({}); // clear the whitelist
-
-  if (!transferringServers) {
-    // clear packages when completing the return to the homepage
-    // we already clear packages when transferring to a new server
-    RemovePackages();
-  }
+  cleanedUp = true;
 }
 
 void Overworld::OnlineArea::onLeave()
@@ -754,7 +791,11 @@ Overworld::TeleportController::Command& Overworld::OnlineArea::teleportIn(sf::Ve
   return GetTeleportController().TeleportIn(actor, position, direction);
 }
 
-void Overworld::OnlineArea::transferServer(const std::string& host, uint16_t port, std::string data, bool warpOut) {
+void Overworld::OnlineArea::transferServer(
+  const std::string& host,
+  uint16_t port,
+  std::string data,
+  bool warpOut) {
   auto reportFailure = [=] {
     SetAvatarAsSpeaker();
     GetMenuSystem().EnqueueMessage("Looks like the next area is offline...");
@@ -762,9 +803,10 @@ void Overworld::OnlineArea::transferServer(const std::string& host, uint16_t por
 
   auto handleFail = [=] {
     if (warpOut) {
-      auto player = GetPlayer();
-      auto position = player->Get3DPosition();
-      auto direction = Reverse(player->GetHeading());
+      std::shared_ptr<Actor> player = GetPlayer();
+      sf::Vector3f position = player->Get3DPosition();
+      Direction direction = Reverse(player->GetHeading());
+      GetPlayerController().ReleaseActor();
       auto& command = GetTeleportController().TeleportIn(player, position, direction);
       warpCameraController.UnlockCamera();
 
@@ -788,17 +830,19 @@ void Overworld::OnlineArea::transferServer(const std::string& host, uint16_t por
       return;
     }
 
-    auto packetProcessor = std::make_shared<Overworld::PollingPacketProcessor>(
-      remoteAddress,
-      Net().GetMaxPayloadSize()
-      );
+    std::shared_ptr<PollingPacketProcessor> packetProcessor =
+      std::make_shared<PollingPacketProcessor>(
+        remoteAddress,
+        Net().GetMaxPayloadSize());
 
-    packetProcessor->SetStatusHandler([this, host, port, data, handleFail, packetProcessor = packetProcessor.get()](auto status, auto maxPayloadSize) {
+    packetProcessor->SetStatusHandler(
+      [this, host, port, data, handleFail, packetProcessor = packetProcessor.get()]
+    (auto status, auto maxPayloadSize) {
       if (status == ServerStatus::online) {
-        AddSceneChangeTask([=] {
-          RemovePackages();
-          getController().replace<segue<BlackWashFade>::to<Overworld::OnlineArea>>(host, port, data, maxPayloadSize);
-        });
+        cleanup();
+        getController()
+          .replace<segue<BlackWashFade>
+          ::to<Overworld::OnlineArea>>(host, port, data, maxPayloadSize);
       }
       else {
         handleFail();
@@ -811,6 +855,7 @@ void Overworld::OnlineArea::transferServer(const std::string& host, uint16_t por
   };
 
   if (warpOut) {
+    GetPlayerController().ReleaseActor();
     auto& command = GetTeleportController().TeleportOut(GetPlayer());
     command.onFinish.Slot(attemptTransfer);
   }
@@ -3229,11 +3274,12 @@ void Overworld::OnlineArea::receiveSpriteDeallocSignal(BufferReader& reader, con
 }
 
 void Overworld::OnlineArea::leave() {
-  if (packetProcessor) {
-    Net().DropProcessor(packetProcessor);
-    packetProcessor = nullptr;
+  try {
+    cleanup();
   }
-
+  catch (std::exception& e) {
+    Logger::Logf(LogLevel::critical, e.what());
+  }
   tryPopScene = true;
 }
 

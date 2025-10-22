@@ -96,6 +96,7 @@ namespace Overworld {
     bool tryPopScene{ false };
     bool canProceedToBattle{ false };
     bool copyScreen{ false };
+    bool cleanedUp{ false };
     ReturningScene returningFrom{ ReturningScene::Null };
     ActorPropertyAnimator propertyAnimator;
     ServerAssetManager serverAssetManager;
@@ -256,6 +257,7 @@ protected:
     void onStart() override;
     void onEnd() override;
     void onLeave() override;
+    void cleanup();
     void onResume() override;
 
     void OnTileCollision() override;
