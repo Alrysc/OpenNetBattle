@@ -217,8 +217,23 @@ void Overworld::OnlineArea::onUpdate(double elapsed)
 
   SceneBase::onUpdate(elapsed);
 
-  for (auto& p : remoteSpriteObjects) {
-    auto& data = p.second;
+  auto z_order = 
+    [this]
+    (const std::string& a, const std::string& b) -> bool
+    { 
+      auto& aNode = remoteSpriteObjects[a].node;
+      auto& bNode = remoteSpriteObjects[b].node;
+      return aNode->GetLayer() < bNode->GetLayer(); 
+    };
+
+  std::sort(
+    remoteSpriteObjectOrder.begin(), 
+    remoteSpriteObjectOrder.end(),
+    z_order
+  );
+
+  for (auto& p : remoteSpriteObjectOrder) {
+    auto& data = remoteSpriteObjects[p];
     data.anim.Update(elapsed, data.node->getSprite());
   }
 
@@ -524,16 +539,13 @@ void Overworld::OnlineArea::onDraw(sf::RenderTexture& surface)
     copyScreen = false;
   }
 
-  for (auto& p : remoteSpriteObjects) {
-    auto& data = p.second;
-    const sf::Vector2f prev = data.node->getPosition();
-    //data.node->setPosition(GetCamera().GetView().getCenter());
-    data.node->draw(surface);
-    //data.node->setPosition(prev);
-  }
-
   if (GetMenuSystem().IsFullscreen()) {
     return;
+  }
+
+  for (auto& p : remoteSpriteObjectOrder) {
+    auto& data = remoteSpriteObjects[p];
+    data.node->draw(surface);
   }
 
   auto& window = getController().getWindow();
@@ -3119,6 +3131,9 @@ void Overworld::OnlineArea::receiveSpriteDrawSignal(BufferReader& reader, const 
        std::make_shared<SpriteProxyNode>(node->getSprite()), 
      };
      iter2 = remoteSpriteObjects.find(obj_id);
+
+     // Add index entry to the order list
+     remoteSpriteObjectOrder.push_back(obj_id);
   }
 
   // Fetch
@@ -3129,6 +3144,7 @@ void Overworld::OnlineArea::receiveSpriteDrawSignal(BufferReader& reader, const 
 
   sf::Vector2f prevPos = obj.node->getPosition();
   sf::Vector2f prevScale = obj.node->getScale();
+  sf::Vector2f prevOrigin = obj.node->getOrigin();
 
   // Translation X
   if ((mask & 0x01) == 0x01) {
@@ -3172,43 +3188,52 @@ void Overworld::OnlineArea::receiveSpriteDrawSignal(BufferReader& reader, const 
     obj.node->setColor(color);
   }
 
-  // Texture
-  if ((mask & 0x40) == 0x40) {
-    const std::string texture_path = 
-      reader.ReadString<uint16_t>(buffer);
-
-    auto tex = serverAssetManager.GetTexture(texture_path);
-
-    if (tex) {
-      node->setTexture(tex, true);
-      obj.anim.Refresh(obj.node->getSprite());
-    }
-  }
-
-  // Anim Path
-  if ((mask & 0x80) == 0x80) {
-    const std::string anim_path =
-      reader.ReadString<uint16_t>(buffer);
-
-    auto anim_data = serverAssetManager.GetText(anim_path);
-
-    if (!anim_data.empty()) {
-      obj.anim = Animation(anim_data);
-    }
-  }
-
   // Anim State
-  if ((mask & 0x100) == 0x100) {
+  if ((mask & 0x40) == 0x40) {
     const std::string anim_state =
       reader.ReadString<uint16_t>(buffer);
     obj.anim.SetAnimation(anim_state);
     obj.anim.Refresh(obj.node->getSprite());
   }
+
+  // Layer (Sorting)
+  if ((mask & 0x80) == 0x80) {
+    const int16_t layer = reader.Read<int16_t>(buffer);
+    obj.node->SetLayer(layer);
+  }
+
+  // Origin X (in pixels)
+  if ((mask & 0x100) == 0x100) {
+    const float ox = static_cast<float>(reader.Read<int16_t>(buffer));
+    obj.node->setOrigin(ox, prevOrigin.y);
+    prevOrigin.x = ox;
+  }
+
+  // Origin Y (in pixels)
+  if ((mask & 0x200) == 0x200) {
+    const float oy = static_cast<float>(reader.Read<int16_t>(buffer));
+    obj.node->setOrigin(prevOrigin.x, oy);
+  }
 }
 
 void Overworld::OnlineArea::receiveSpriteEraseSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
 {
-  remoteSpriteObjects.erase(reader.ReadString<uint8_t>(buffer));
+  const std::string& obj_id = reader.ReadString<uint16_t>(buffer);
+  if (remoteSpriteObjects.find(obj_id) == remoteSpriteObjects.end()) {
+    return;
+  }
+
+  remoteSpriteObjects.erase(obj_id);
+  
+  auto iter = std::find(
+    remoteSpriteObjectOrder.begin(), 
+    remoteSpriteObjectOrder.end(), 
+    obj_id
+  );
+
+  // This should always exist b/c its lifetime is bound to the 
+  // corresponding remoteSpriteObjects entry.
+  remoteSpriteObjectOrder.erase(iter);
 }
 
 void Overworld::OnlineArea::receiveSpriteDeallocSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)

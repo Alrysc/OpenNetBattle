@@ -101,6 +101,7 @@ namespace Overworld {
     ServerAssetManager serverAssetManager;
     IdentityManager identityManager;
     AssetMeta incomingAsset;
+    std::vector<std::string> remoteSpriteObjectOrder;
     std::map<std::string, RemoteScreenSprite> remoteSprites;
     std::map<std::string, RemoteScreenSprite> remoteSpriteObjects;
     std::map<std::string, OnlinePlayer> onlinePlayers;
