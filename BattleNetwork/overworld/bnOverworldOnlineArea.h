@@ -75,6 +75,103 @@ namespace Overworld {
       std::shared_ptr<SpriteProxyNode> node{ nullptr };
     };
 
+    struct RemoteScreenSpriteObject {
+      std::string sprite_id;
+      std::string state;
+      double elapsed{};
+      int16_t layer{};
+      struct {
+        sf::Vector2f pos;
+        sf::Vector2f origin;
+        sf::Vector2f scale{ 1.f, 1.f };
+        sf::Color color{ sf::Color::White };
+        float rotation{};
+        uint8_t opacity{ 0xFF };
+      } next, curr;
+
+      void SetPosition(const sf::Vector2f pos) { next.pos = pos; }
+      void SetScale(const sf::Vector2f scale) { next.scale = scale; }
+      void SetOrigin(const sf::Vector2f origin) { next.origin = origin; }
+      void SetRotation(float rot) { next.rotation = rot; }
+      void SetOpacity(uint8_t opacity) { next.opacity = opacity; }
+      void SetColor(const sf::Color color) { next.color = color; }
+      void SetAnimation(const std::string& state) { this->state = state; elapsed = 0.f; }
+      void SetLayer(int16_t layer) { this->layer = layer; }
+
+      sf::Vector2f GetPosition() const { return curr.pos; }
+      sf::Vector2f GetOrigin() const { return curr.origin; }
+      sf::Vector2f GetScale() const { return curr.scale; }
+      float GetRotation() const { return curr.rotation; }
+      uint8_t GetOpacity() const { return curr.opacity; }
+      sf::Color GetColor() const { return curr.color; }
+      std::string GetAnimation() const { return state; }
+      int16_t GetLayer() const { return layer; }
+
+      void Update(double elapsed) {
+        this->elapsed += elapsed;
+
+        // LTE one tenth of the screen width delta can be smoothened.
+        // Large delta must snap.
+        if (abs(next.pos.x - curr.pos.x) <= 48) {
+          curr.pos.x = swoosh::ease::interpolate(0.5f, curr.pos.x, next.pos.x);
+        }
+        else {
+          curr.pos.x = next.pos.x;
+        }
+
+        // 32 is one tength of screen height delta.
+        if (abs(next.pos.y - curr.pos.y) <= 32) {
+          curr.pos.y = swoosh::ease::interpolate(0.5f, curr.pos.y, next.pos.y);
+        }
+        else {
+          curr.pos.y = next.pos.y;
+        }
+
+        curr.scale.x = swoosh::ease::interpolate(0.5f, curr.scale.x, next.scale.x);
+        curr.scale.y = swoosh::ease::interpolate(0.5f, curr.scale.y, next.scale.y);
+        curr.origin.x = swoosh::ease::interpolate(0.5f, curr.origin.x, next.origin.x);
+        curr.origin.y = swoosh::ease::interpolate(0.5f, curr.origin.y, next.origin.y);
+        curr.rotation = swoosh::ease::interpolate(0.5f, curr.rotation, next.rotation);
+
+        if (abs(next.opacity - curr.opacity) < 25) {
+          curr.opacity = static_cast<uint8_t>(
+            swoosh::ease::interpolate(
+              0.5f,
+              static_cast<float>(curr.opacity),
+              static_cast<float>(next.opacity)
+            )
+            );
+        }
+        else {
+          curr.opacity = next.opacity;
+        }
+
+        const float curr_red = static_cast<float>(curr.color.r);
+        const float next_red = static_cast<float>(next.color.r);
+        curr.color.r = static_cast<uint8_t>(
+          swoosh::ease::interpolate(0.5f, curr_red, next_red)
+        );
+
+        const float curr_green = static_cast<float>(curr.color.g);
+        const float next_green = static_cast<float>(next.color.g);
+        curr.color.g = static_cast<uint8_t>(
+          swoosh::ease::interpolate(0.5f, curr_green, next_green)
+        );
+
+        const float curr_blue = static_cast<float>(curr.color.b);
+        const float next_blue = static_cast<float>(next.color.b);
+        curr.color.b = static_cast<uint8_t>(
+          swoosh::ease::interpolate(0.5f, curr_blue, next_blue)
+        );
+
+        curr.color.a = curr.opacity;
+      }
+
+      void Sync() {
+        curr = next;
+      }
+    };
+
     std::string host;
     uint16_t port{};
     std::shared_ptr<Overworld::EmoteNode> emoteNode;
@@ -103,7 +200,7 @@ namespace Overworld {
     AssetMeta incomingAsset;
     std::vector<std::string> remoteSpriteObjectOrder;
     std::map<std::string, RemoteScreenSprite> remoteSprites;
-    std::map<std::string, RemoteScreenSprite> remoteSpriteObjects;
+    std::map<std::string, RemoteScreenSpriteObject> remoteSpriteObjects;
     std::map<std::string, OnlinePlayer> onlinePlayers;
     std::map<unsigned, ExcludedObjectData> excludedObjects;
     std::unordered_set<std::string> excludedActors;
