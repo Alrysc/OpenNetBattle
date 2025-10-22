@@ -21,13 +21,15 @@
 
 namespace Overworld {
   struct OnlinePlayer {
-    OnlinePlayer(std::string name) : actor(std::make_shared<Overworld::Actor>(name)) {}
+    OnlinePlayer(std::string name) 
+      : actor(std::make_shared<Overworld::Actor>(name)) {}
+
     std::shared_ptr<Minimap::PlayerMarker> marker;
     std::shared_ptr<Overworld::Actor> actor;
     std::shared_ptr<Overworld::EmoteNode> emoteNode;
     Overworld::TeleportController teleportController{};
     bool disconnecting{ false };
-    Direction idleDirection;
+    Direction idleDirection{ Direction::none };
     sf::Vector3f startBroadcastPos{};
     sf::Vector3f endBroadcastPos{};
     long long timestamp{};
@@ -54,8 +56,8 @@ namespace Overworld {
     };
 
     struct ExcludedObjectData {
-      bool visible;
-      bool solid;
+      bool visible {};
+      bool solid {};
     };
 
     struct AssetMeta {
@@ -74,7 +76,7 @@ namespace Overworld {
     };
 
     std::string host;
-    uint16_t port;
+    uint16_t port{};
     std::shared_ptr<Overworld::EmoteNode> emoteNode;
     std::shared_ptr<sf::Texture> customEmotesTexture;
     std::string ticket; //!< How we are represented on the server

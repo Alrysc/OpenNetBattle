@@ -82,10 +82,10 @@ void FreedomMissionOverState::onStart(const BattleSceneState* _)
 
         // NOTE: paranoid cleanup codes ALWAYS cleans up!
         // some attacks use nodes that would be cleanup with End() but overwriting the animation prevents this
-        auto ourNodes = p->GetChildNodesWithTag({ Player::BASE_NODE_TAG,Player::FORM_NODE_TAG });
-        auto allNodes = p->GetChildNodes();
+        auto& ourNodes = p->GetChildNodesWithTag({ Player::BASE_NODE_TAG,Player::FORM_NODE_TAG });
+        auto& allNodes = p->GetChildNodes();
 
-        for (auto node : allNodes) {
+        for (auto& node : allNodes) {
           auto iter = ourNodes.find(node);
           if (iter == ourNodes.end()) {
             p->RemoveNode(node);
@@ -102,6 +102,8 @@ void FreedomMissionOverState::onStart(const BattleSceneState* _)
   }
 
   GetScene().GetField()->RequestBattleStop();
+
+  scene.InvokeEndCallback(results);
 }
 
 
