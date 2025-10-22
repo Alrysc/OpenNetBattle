@@ -226,9 +226,23 @@ void Overworld::OnlineArea::onUpdate(double elapsed)
 
   SceneBase::onUpdate(elapsed);
 
-  for (auto& p : remoteSpriteObjects) {
-    auto& data = p.second;
-    data.anim.Update(elapsed, data.node->getSprite());
+  auto z_order = 
+    [this]
+    (const std::string& a, const std::string& b) -> bool
+    { 
+      auto& objA = remoteSpriteObjects[a];
+      auto& objB = remoteSpriteObjects[b];
+      return objA.GetLayer() < objB.GetLayer(); 
+    };
+
+  std::sort(
+    remoteSpriteObjectOrder.begin(), 
+    remoteSpriteObjectOrder.end(),
+    z_order
+  );
+
+  for (auto& p : remoteSpriteObjectOrder) {
+    remoteSpriteObjects[p].Update(elapsed);
   }
 
   auto& camera = GetCamera();
@@ -558,16 +572,29 @@ void Overworld::OnlineArea::onDraw(sf::RenderTexture& surface)
     copyScreen = false;
   }
 
-  for (auto& p : remoteSpriteObjects) {
-    auto& data = p.second;
-    const sf::Vector2f prev = data.node->getPosition();
-    //data.node->setPosition(GetCamera().GetView().getCenter());
-    data.node->draw(surface);
-    //data.node->setPosition(prev);
-  }
-
   if (GetMenuSystem().IsFullscreen()) {
     return;
+  }
+
+  for (auto& p : remoteSpriteObjectOrder) {
+    auto& data = remoteSpriteObjects[p];
+    auto& sprite = remoteSprites[data.sprite_id];
+
+    const std::string& state = data.GetAnimation();
+    Animation& anim = sprite.anim;
+    if (anim.GetAnimationString() != state) {
+      anim.SetAnimation(state);
+    }
+    anim.SyncTime(from_seconds(data.elapsed));
+    anim.Refresh(sprite.node->getSprite());
+
+    std::shared_ptr<SpriteProxyNode>& node = sprite.node;
+    node->setPosition(data.GetPosition());
+    node->setScale(data.GetScale());
+    node->setOrigin(data.GetOrigin());
+    node->setRotation(data.GetRotation());
+    node->setColor(data.GetColor());
+    node->draw(surface);
   }
 
   auto& window = getController().getWindow();
@@ -2780,7 +2807,9 @@ void Overworld::OnlineArea::receiveMobSignal(BufferReader& reader, const Poco::B
       mob->SetBackground(GetBackground());
     }
 
-    std::vector<PackageAddress> localNaviBlocksAddr = PlayerCustScene::GetInstalledBlocks(playerMeta.packageId, gameSession);
+    std::vector<PackageAddress> localNaviBlocksAddr = 
+      PlayerCustScene::GetInstalledBlocks(playerMeta.packageId, gameSession);
+
     std::vector<std::string> localNaviBlocks;
 
     for (const PackageAddress& addr : localNaviBlocksAddr) {
@@ -2795,7 +2824,13 @@ void Overworld::OnlineArea::receiveMobSignal(BufferReader& reader, const Poco::B
     // just like the game
     if (mob->IsFreedomMission()) {
       FreedomMissionProps props{
-        { player, GetProgramAdvance(), std::move(folder), mob->GetField(), mob->GetBackground() },
+        { 
+          player, 
+          GetProgramAdvance(), 
+          std::move(folder), 
+          mob->GetField(), 
+          mob->GetBackground() 
+        },
         { mob },
         mob->GetTurnLimit(),
         sf::Sprite(*mugshot),
@@ -3318,30 +3353,38 @@ void Overworld::OnlineArea::receiveSpriteDrawSignal(BufferReader& reader, const 
   // Unique instance object
   const std::string& obj_id = reader.ReadString<uint16_t>(buffer);
 
+  bool initialized = false;
   auto iter2 = remoteSpriteObjects.find(obj_id);
   if (iter2 == remoteSpriteObjects.end()) {
      // Add to table
-     remoteSpriteObjects[obj_id] = RemoteScreenSprite{
-       iter->second.anim,
-       std::make_shared<SpriteProxyNode>(node->getSprite()), 
+     remoteSpriteObjects[obj_id] = RemoteScreenSpriteObject{
+       sprite_id,
+       iter->second.anim.GetAnimationString(),
      };
      iter2 = remoteSpriteObjects.find(obj_id);
+
+     // Add index entry to the order list
+     remoteSpriteObjectOrder.push_back(obj_id);
+
+     // Flag that this was created this frame
+     initialized = true;
   }
 
   // Fetch
-  RemoteScreenSprite& obj = iter2->second;
+  RemoteScreenSpriteObject& obj = iter2->second;
 
   // Read mask
   const uint16_t mask = reader.Read<uint16_t>(buffer);
 
-  sf::Vector2f prevPos = obj.node->getPosition();
-  sf::Vector2f prevScale = obj.node->getScale();
+  sf::Vector2f prevPos = obj.GetPosition();
+  sf::Vector2f prevScale = obj.GetScale();
+  sf::Vector2f prevOrigin = obj.GetOrigin();
 
   // Translation X
   if ((mask & 0x01) == 0x01) {
     const float tx = 
       static_cast<float>(reader.Read<int16_t>(buffer));
-    obj.node->setPosition(tx, prevPos.y);
+    obj.SetPosition({ tx, prevPos.y });
     prevPos.x = tx;
   }
 
@@ -3349,82 +3392,94 @@ void Overworld::OnlineArea::receiveSpriteDrawSignal(BufferReader& reader, const 
   if ((mask & 0x02) == 0x02) {
     const float ty =
       static_cast<float>(reader.Read<int16_t>(buffer));
-    obj.node->setPosition(prevPos.x, ty);
+    obj.SetPosition({prevPos.x, ty});
   }
 
   // Scale X
   if ((mask & 0x04) == 0x04) {
     const float sx = reader.Read<float>(buffer);
-    obj.node->setScale(sx, prevScale.y);
+    obj.SetScale({ sx, prevScale.y });
     prevScale.x = sx;
   }
 
   // Scale Y
   if ((mask & 0x08) == 0x08) {
     const float sy = reader.Read<float>(buffer);
-    obj.node->setScale(prevScale.x, sy);
+    obj.SetScale({ prevScale.x, sy });
   }
 
   // Rotate
   if ((mask & 0x10) == 0x10) {
     const float rot = reader.Read<float>(buffer);
-    obj.node->setRotation(rot);
+    obj.SetRotation(rot);
   }
 
   // Opacity
   if ((mask & 0x20) == 0x20) {
     const uint8_t opacity = reader.Read<uint8_t>(buffer);
-    sf::Color color = obj.node->getColor();
+    sf::Color color = obj.GetColor();
     color.a = opacity;
-    obj.node->setColor(color);
-  }
-
-  // Texture
-  if ((mask & 0x40) == 0x40) {
-    const std::string texture_path = 
-      reader.ReadString<uint16_t>(buffer);
-
-    auto tex = serverAssetManager.GetTexture(texture_path);
-
-    if (tex) {
-      node->setTexture(tex, true);
-      obj.anim.Refresh(obj.node->getSprite());
-    }
-  }
-
-  // Anim Path
-  if ((mask & 0x80) == 0x80) {
-    const std::string anim_path =
-      reader.ReadString<uint16_t>(buffer);
-
-    auto anim_data = serverAssetManager.GetText(anim_path);
-
-    if (!anim_data.empty()) {
-      obj.anim = Animation(anim_data);
-    }
+    obj.SetColor(color);
   }
 
   // Anim State
-  if ((mask & 0x100) == 0x100) {
+  if ((mask & 0x40) == 0x40) {
     const std::string anim_state =
       reader.ReadString<uint16_t>(buffer);
-    obj.anim.SetAnimation(anim_state);
-    obj.anim.Refresh(obj.node->getSprite());
+    obj.SetAnimation(anim_state);
   }
+
+  // Layer (Sorting)
+  if ((mask & 0x80) == 0x80) {
+    const int16_t layer = reader.Read<int16_t>(buffer);
+    obj.SetLayer(layer);
+  }
+
+  // Origin X (in pixels)
+  if ((mask & 0x100) == 0x100) {
+    const float ox = static_cast<float>(reader.Read<int16_t>(buffer));
+    obj.SetOrigin({ ox, prevOrigin.y });
+    prevOrigin.x = ox;
+  }
+
+  // Origin Y (in pixels)
+  if ((mask & 0x200) == 0x200) {
+    const float oy = static_cast<float>(reader.Read<int16_t>(buffer));
+    obj.SetOrigin({prevOrigin.x, oy});
+  }
+
+  // If this frame was initialized, snap to the pending values.
+  obj.Sync();
 }
 
 void Overworld::OnlineArea::receiveSpriteEraseSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
 {
-  remoteSpriteObjects.erase(reader.ReadString<uint8_t>(buffer));
+  const std::string& obj_id = reader.ReadString<uint16_t>(buffer);
+  if (remoteSpriteObjects.find(obj_id) == remoteSpriteObjects.end()) {
+    return;
+  }
+
+  remoteSpriteObjects.erase(obj_id);
+  
+  auto iter = std::find(
+    remoteSpriteObjectOrder.begin(), 
+    remoteSpriteObjectOrder.end(), 
+    obj_id
+  );
+
+  // This should always exist b/c its lifetime is bound to the 
+  // corresponding remoteSpriteObjects entry.
+  remoteSpriteObjectOrder.erase(iter);
 }
 
 void Overworld::OnlineArea::receiveSpriteDeallocSignal(BufferReader& reader, const Poco::Buffer<char>& buffer)
 {
-  auto iter = remoteSprites.find(reader.ReadString<uint8_t>(buffer));
+  const std::string& sprite_id = reader.ReadString<uint8_t>(buffer);
+  auto iter = remoteSprites.find(sprite_id);
   if (iter == remoteSprites.end()) return;
 
   for (auto& iter2 = remoteSpriteObjects.begin(); iter2 != remoteSpriteObjects.end(); /*manual*/) {
-    if (iter2->second.node == iter->second.node) {
+    if (iter2->second.sprite_id == iter->first) {
       iter2 = remoteSpriteObjects.erase(iter2);
     }
     else {
