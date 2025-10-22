@@ -117,15 +117,17 @@ namespace Overworld
     actor_keyframes,
     actor_minimap_color,
     // 2.1 Backport features from 2.5
+    UNUSED_offer_package, // Unused packet from 2.0 server.
     fragments,
     hud_visible,
     battle_reward_item,
     send_mail,
     hud_set_mode,
     ringtone,
-    sprite_create,
-    sprite_update,
-    sprite_remove,
+    sprite_alloc,
+    sprite_dealloc,
+    sprite_draw,
+    sprite_erase,
     size,
     unknown = size
   };

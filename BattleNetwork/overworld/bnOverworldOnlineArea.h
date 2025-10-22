@@ -102,6 +102,7 @@ namespace Overworld {
     IdentityManager identityManager;
     AssetMeta incomingAsset;
     std::map<std::string, RemoteScreenSprite> remoteSprites;
+    std::map<std::string, RemoteScreenSprite> remoteSpriteObjects;
     std::map<std::string, OnlinePlayer> onlinePlayers;
     std::map<unsigned, ExcludedObjectData> excludedObjects;
     std::unordered_set<std::string> excludedActors;
@@ -220,9 +221,10 @@ namespace Overworld {
     void receiveBattleRewardItemSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receiveSendMailSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receiveRingtoneSignal(BufferReader& reader, const Poco::Buffer<char>&);
-    void receiveSpriteCreateSignal(BufferReader& reader, const Poco::Buffer<char>&);
-    void receiveSpriteUpdateSignal(BufferReader& reader, const Poco::Buffer<char>&);
-    void receiveSpriteRemoveSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveSpriteAllocSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveSpriteDrawSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveSpriteEraseSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receiveSpriteDeallocSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void leave();
   
 protected:
