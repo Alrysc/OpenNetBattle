@@ -117,7 +117,7 @@ namespace Overworld
     actor_keyframes,
     actor_minimap_color,
     // 2.1 Backport features from 2.5
-    UNUSED_offer_package, // Unused packet from 2.0 server.
+    offer_package, // Unused packet from 2.0 server.
     fragments,
     hud_visible,
     battle_reward_item,
@@ -137,5 +137,14 @@ namespace Overworld
     texture,
     audio,
     data
+  };
+
+  enum class PackageType : char {
+    blocks,
+    card,
+    encounter,
+    character,
+    library,
+    player,
   };
 } // namespace Overworld

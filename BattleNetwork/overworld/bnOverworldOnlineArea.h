@@ -134,6 +134,13 @@ namespace Overworld {
     Overworld::TeleportController::Command& teleportIn(sf::Vector3f position, Direction direction);
     void transferServer(const std::string& host, uint16_t port, std::string data, bool warpOut);
     void processPacketBody(const Poco::Buffer<char>& data);
+
+    template <typename ScriptedType, typename Partition>
+    void InstallPackage(Partition& partition, const std::string& modFolder, const std::string& packageName, const std::string& packageId, const std::string& filePath);
+    template <typename ScriptedType, typename Partitioner>
+    void RunPackageWizard(Partitioner& partitioner, const std::string& modFolder, const std::string& packageName, const std::string& packageId, const std::string& filePath);
+    void RunPackageWizard(PackageType packageType, const std::string& packageName, std::string& packageId, const std::string& filePath);
+
     void CheckPlayerAgainstWhitelist();
 
     void sendAssetFoundSignal(const std::string& path, uint64_t lastModified);
@@ -205,7 +212,9 @@ namespace Overworld {
     void receiveOpenShopSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receivePVPSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receiveLoadPackageSignal(BufferReader& reader, const Poco::Buffer<char>&);
+    void receivePackageOfferSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receiveModWhitelistSignal(BufferReader& reader, const Poco::Buffer<char>& buffer);
+    void receiveModBlacklistSignal(BufferReader& reader, const Poco::Buffer<char>& buffer);
     void receiveMobSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receiveActorConnectedSignal(BufferReader& reader, const Poco::Buffer<char>&);
     void receiveActorDisconnectedSignal(BufferReader& reader, const Poco::Buffer<char>&);
