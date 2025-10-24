@@ -64,6 +64,17 @@ BattleItem* Mob::GetRankedReward(int score) {
 }
 
 void Mob::Cleanup() {
+  /*
+    Clear out all Mutators. This appears to avoid some access violation 
+    while mob packages are being deleted if the battle had previously been 
+    quit before spawning finished. GetNextSpawn will pull out the unique 
+    pointers and let them be destroyed.
+
+    spawn.clear() does not avoid the access violation. 
+  */
+  while (GetNextSpawn()) {
+
+  }
   /*iter = spawn.end();
   field = nullptr;
   spawn.clear();
