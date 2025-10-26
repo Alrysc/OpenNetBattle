@@ -100,6 +100,7 @@ void PlayerHealthUI::Update(double elapsed)
 
 void PlayerHealthUI::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
+  if (IsHidden()) return;
   //auto this_states = states;
   //this_states.transform *= getTransform();
 
@@ -141,7 +142,7 @@ PlayerHealthUIComponent::~PlayerHealthUIComponent() {
 void PlayerHealthUIComponent::Inject(BattleSceneBase& scene)
 {
   scene.Inject(shared_from_base<PlayerHealthUIComponent>());
-  this->scene - &scene;
+  this->scene = &scene;
 }
 
 void PlayerHealthUIComponent::draw(sf::RenderTarget& target, sf::RenderStates states) const {
@@ -184,11 +185,13 @@ void PlayerHealthUIComponent::OnUpdate(double elapsed) {
       isPoisoned = player->GetTile()->GetState() == TileState::poison;
     }
 
-    if (isBurning || isPoisoned || player->GetHealth() <= startHP * 0.25) {
+    const bool lowHealth = player->GetHealth() <= startHP * 0.25;
+    if (lowHealth || isBurning || isPoisoned) {
       ui.SetFontStyle(Font::Style::gradient_gold);
 
       // If HP is low, play beep with high priority
-      if (player->GetHealth() <= startHP * 0.25 && !isBattleOver && scene && scene->GetSelectedCardsUI().IsHidden()) {
+      // TODO: This plays the sound during card select, but not timestop. That should be reversed.
+      if (lowHealth && !isBattleOver && scene && !scene->GetSelectedCardsUI().IsHidden()) {
         ResourceHandle().Audio().Play(AudioType::LOW_HP, AudioPriority::high);
       }
     }
