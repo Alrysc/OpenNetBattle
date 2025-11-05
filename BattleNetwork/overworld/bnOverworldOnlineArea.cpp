@@ -3417,9 +3417,7 @@ void Overworld::OnlineArea::receiveSpriteDrawSignal(BufferReader& reader, const 
   // Opacity
   if ((mask & 0x20) == 0x20) {
     const uint8_t opacity = reader.Read<uint8_t>(buffer);
-    sf::Color color = obj.GetColor();
-    color.a = opacity;
-    obj.SetColor(color);
+    obj.SetOpacity(opacity);
   }
 
   // Anim State
@@ -3448,7 +3446,9 @@ void Overworld::OnlineArea::receiveSpriteDrawSignal(BufferReader& reader, const 
     obj.SetOrigin({prevOrigin.x, oy});
   }
 
-  // If this frame was initialized, snap to the pending values.
+  // At this time, always sync. This is b/c slow moving sprites jitter when
+  // the client out-predicts the server. Better heuristic for easing due to
+  // network ping would allow us to sync only when needed.
   obj.Sync();
 }
 
