@@ -140,7 +140,7 @@ namespace Overworld {
               static_cast<float>(curr.opacity),
               static_cast<float>(next.opacity)
             )
-            );
+          );
         }
         else {
           curr.opacity = next.opacity;

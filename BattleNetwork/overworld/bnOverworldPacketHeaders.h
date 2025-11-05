@@ -6,7 +6,7 @@
 namespace Overworld
 {
   constexpr std::string_view VERSION_ID = "https://github.com/OpenNetBattle/Server@Backport/2.1";
-  const uint64_t VERSION_ITERATION = 43;
+  const uint64_t VERSION_ITERATION = 44;
 
   constexpr double PACKET_RESEND_RATE = 1.0 / 20.0;
 
